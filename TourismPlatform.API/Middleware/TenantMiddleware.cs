@@ -34,7 +34,7 @@ public class TenantMiddleware
         // Para desarrollo local o cuando no hay subdominio
         if (host.Contains("localhost") || !host.Contains("."))
         {
-            return "default"; // tenant por defecto para desarrollo
+            return "demo"; // tenant por defecto para desarrollo
         }
 
         var parts = host.Split('.');

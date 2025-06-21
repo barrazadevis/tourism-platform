@@ -1,37 +1,106 @@
 using Microsoft.AspNetCore.Mvc;
+using TourismPlatform.Core.DTOs;
+using TourismPlatform.Data.Interfaces;
+using TourismPlatform.Data.Services;
 
-namespace TourismPlatform.API.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class AuthController : ControllerBase
+namespace TourismPlatform.API.Controllers
 {
-    private readonly HttpClient _httpClient;
-    private readonly IConfiguration _configuration;
-
-    public AuthController(HttpClient httpClient, IConfiguration configuration)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AuthController : ControllerBase
     {
-        _httpClient = httpClient;
-        _configuration = configuration;
+        private readonly IAuthService _authService;
+        private readonly ITenantService _tenantService;
+
+        public AuthController(IAuthService authService, ITenantService tenantService)
+        {
+            _authService = authService;
+            _tenantService = tenantService;
+        }
+
+        [HttpPost("login")]
+        public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginRequestDto request)
+        {
+            try
+            {
+                var tenant = await _tenantService.GetCurrentTenantAsync();
+                if (tenant == null)
+                    return BadRequest("Tenant no encontrado");
+
+                var response = await _authService.LoginAsync(request, tenant.Subdomain);
+                return Ok(response);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("register")]
+        public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterRequestDto request)
+        {
+            try
+            {
+                var tenant = await _tenantService.GetCurrentTenantAsync();
+                if (tenant == null)
+                    return BadRequest("Tenant no encontrado");
+
+                var response = await _authService.RegisterAsync(request, tenant.Subdomain);
+                return Ok(response);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        [HttpPost("validate")]
+        public async Task<ActionResult> ValidateToken([FromBody] ValidateTokenRequest request)
+        {
+            try
+            {
+                var isValid = await _authService.ValidateTokenAsync(request.Token);
+                
+                if (!isValid)
+                    return Unauthorized(new { message = "Token inválido" });
+
+                var user = await _authService.GetUserFromTokenAsync(request.Token);
+                if (user == null)
+                    return Unauthorized(new { message = "Usuario no encontrado" });
+
+                return Ok(new
+                {
+                    valid = true,
+                    user = new UserDto
+                    {
+                        Id = user.Id,
+                        Email = user.Email,
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
+                        Role = user.Role,
+                        TenantId = user.TenantId,
+                        TenantName = user.Tenant.Name,
+                        TenantSubdomain = user.Tenant.Subdomain
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] object loginRequest)
+    public class ValidateTokenRequest
     {
-        var authApiUrl = _configuration["AuthService:BaseUrl"];
-        var response = await _httpClient.PostAsJsonAsync($"{authApiUrl}/api/auth/login", loginRequest);
-        var content = await response.Content.ReadAsStringAsync();
-        
-        return StatusCode((int)response.StatusCode, content);
-    }
-
-    [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] object registerRequest)
-    {
-        var authApiUrl = _configuration["AuthService:BaseUrl"];
-        var response = await _httpClient.PostAsJsonAsync($"{authApiUrl}/api/auth/register", registerRequest);
-        var content = await response.Content.ReadAsStringAsync();
-        
-        return StatusCode((int)response.StatusCode, content);
+        public string Token { get; set; } = string.Empty;
     }
 }

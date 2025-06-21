@@ -6,83 +6,102 @@ namespace TourismPlatform.Data;
 
 public class TourismDbContext : DbContext
 {
-    public TourismDbContext(DbContextOptions<TourismDbContext> options) : base(options)
-    {
-    }
+    public TourismDbContext(DbContextOptions<TourismDbContext> options) : base(options) { }
 
-    public DbSet<Tenant> Tenants { get; set; }
-    public DbSet<User> Users { get; set; }
-    public DbSet<TravelPlan> TravelPlans { get; set; }
-    public DbSet<Quote> Quotes { get; set; }
+        // Auth entities (movidas desde Auth service)
+        public DbSet<Application> Applications { get; set; }
+        public DbSet<User> Users { get; set; }
+        
+        // Tourism entities (existentes)
+        public DbSet<Tenant> Tenants { get; set; }
+        public DbSet<TravelPlan> TravelPlans { get; set; }
+        public DbSet<Quote> Quotes { get; set; }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-
-        // Tenant Configuration
-        modelBuilder.Entity<Tenant>(entity =>
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            entity.HasKey(e => e.Id);
-            entity.HasIndex(e => e.Subdomain).IsUnique();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-        });
+            // Application entity
+            modelBuilder.Entity<Application>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Description).HasMaxLength(500);
+                entity.HasIndex(e => e.Name).IsUnique();
+            });
 
-        // User Configuration
-        modelBuilder.Entity<User>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.HasIndex(e => e.Email).IsUnique();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            
-            entity.HasOne(e => e.Tenant)
-                .WithMany(e => e.Users)
-                .HasForeignKey(e => e.TenantId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        // TravelPlan Configuration
-        modelBuilder.Entity<TravelPlan>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(e => e.BasePrice).HasColumnType("decimal(18,2)");
-            
-            // JSON columns for PostgreSQL
-            entity.Property(e => e.Destinations)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                    v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions)null!) ?? new List<string>())
-                .HasColumnType("jsonb");
+            // User entity (con tenant relationship)
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.PasswordHash).IsRequired();
+                entity.Property(e => e.FirstName).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.LastName).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Role).IsRequired().HasMaxLength(20);
                 
-            entity.Property(e => e.Services)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                    v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions)null!) ?? new List<string>())
-                .HasColumnType("jsonb");
+                entity.HasIndex(e => new { e.Email, e.TenantId }).IsUnique();
+                
+                // Relationship con Tenant
+                entity.HasOne(u => u.Tenant)
+                      .WithMany(t => t.Users)
+                      .HasForeignKey(u => u.TenantId)
+                      .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(e => e.Tenant)
-                .WithMany()
-                .HasForeignKey(e => e.TenantId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
+                // Relationship con Application
+                entity.HasOne(u => u.Application)
+                      .WithMany(a => a.Users)
+                      .HasForeignKey(u => u.ApplicationId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
 
-        // Quote Configuration
-        modelBuilder.Entity<Quote>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.HasIndex(e => e.QuoteNumber).IsUnique();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
+            // Tenant entity (actualizada)
+            modelBuilder.Entity<Tenant>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Subdomain).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.PlanType).IsRequired().HasMaxLength(20);
+                
+                entity.HasIndex(e => e.Subdomain).IsUnique();
+                
+                // Relationship con Application
+                entity.HasOne(t => t.Application)
+                      .WithMany(a => a.Tenants)
+                      .HasForeignKey(t => t.ApplicationId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
 
-            entity.HasOne(e => e.Tenant)
-                .WithMany()
-                .HasForeignKey(e => e.TenantId)
-                .OnDelete(DeleteBehavior.Cascade);
+            // TravelPlan entity (sin cambios)
+            modelBuilder.Entity<TravelPlan>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                entity.Property(e => e.BasePrice).HasColumnType("decimal(18,2)");
+                
+                entity.HasOne(tp => tp.Tenant)
+                      .WithMany(t => t.TravelPlans)
+                      .HasForeignKey(tp => tp.TenantId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
 
-            entity.HasOne(e => e.TravelPlan)
-                .WithMany(e => e.Quotes)
-                .HasForeignKey(e => e.TravelPlanId)
-                .OnDelete(DeleteBehavior.Restrict);
-        });
+            // Quote entity (sin cambios)
+            modelBuilder.Entity<Quote>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CustomerName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.CustomerEmail).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
+                
+                entity.HasOne(q => q.TravelPlan)
+                      .WithMany(tp => tp.Quotes)
+                      .HasForeignKey(q => q.TravelPlanId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                      
+                entity.HasOne(q => q.Tenant)
+                      .WithMany(t => t.Quotes)
+                      .HasForeignKey(q => q.TenantId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+        }
     }
-}

@@ -1,88 +1,80 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using TourismPlatform.Data;
-using TourismPlatform.Data.Services;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using TourismPlatform.API.Middleware;
+using TourismPlatform.Data;
 using TourismPlatform.Data.Interfaces;
+using TourismPlatform.Data.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 // Database
 builder.Services.AddDbContext<TourismDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"),
         b => b.MigrationsAssembly("TourismPlatform.API")));
 
+// JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]);
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(secretKey),
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
 // Services
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITenantService, TenantService>();
-builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<ITravelPlanService, TravelPlanService>();
-builder.Services.AddHttpClient<IAuthClient, AuthClient>();
-builder.Services.AddHttpClient();
+builder.Services.AddScoped<IQuoteService, QuoteService>();
+
+// Add controllers
+builder.Services.AddControllers();
+
 // CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "https://*.tourism-platform.com")
+        policy.WithOrigins("http://localhost:3000")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
     });
 });
 
+// Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
+// Configure pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");
+app.UseCors();
+app.UseAuthentication();
 
-// Custom middleware
+// Tenant resolution middleware (before authorization)
 app.UseMiddleware<TenantMiddleware>();
-app.UseMiddleware<AuthMiddleware>();
 
 app.UseAuthorization();
 app.MapControllers();
 
-// Ensure database is created
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<TourismDbContext>();
-    context.Database.EnsureCreated();
-
-    // Seed default tenant for development
-    if (app.Environment.IsDevelopment())
-    {
-        await SeedDefaultTenant(context);
-    }
-}
-
 app.Run();
-
-async Task SeedDefaultTenant(TourismDbContext context)
-{
-    if (!await context.Tenants.AnyAsync(t => t.Subdomain == "default"))
-    {
-        var defaultTenant = new TourismPlatform.Core.Entities.Tenant
-        {
-            Id = Guid.NewGuid(),
-            Name = "Demo Tourism Company",
-            Subdomain = "default",
-            Description = "Empresa de demostraci�n",
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        context.Tenants.Add(defaultTenant);
-        await context.SaveChangesAsync();
-    }
-}
