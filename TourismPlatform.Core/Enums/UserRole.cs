@@ -1,4 +1,4 @@
-namespace TourismPlatform.Core.Entities;
+namespace TourismPlatform.Core.Enums;
 
 public enum UserRole
 {
@@ -13,14 +13,4 @@ public enum PlanStatus
     Active = 1,
     Inactive = 2,
     Archived = 3
-}
-
-public enum QuoteStatus
-{
-    Draft = 0,
-    Sent = 1,
-    Viewed = 2,
-    Accepted = 3,
-    Rejected = 4,
-    Expired = 5
 }

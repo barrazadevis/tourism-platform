@@ -1,132 +1,177 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using TourismPlatform.Core.DTOs;
-using TourismPlatform.Core.Entities;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TourismPlatform.Data.Interfaces;
+using TourismPlatform.Core.DTOs.Quote;
 
-namespace TourismPlatform.API.Controllers;
-
-public class QuotesController : BaseController
+namespace TourismPlatform.API.Controllers
 {
-    private readonly IQuoteService _quoteService;
-    private readonly ITravelPlanService _travelPlanService;
-
-    public QuotesController(IQuoteService quoteService, ITravelPlanService travelPlanService)
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class QuotesController : ControllerBase
     {
-        _quoteService = quoteService;
-        _travelPlanService = travelPlanService;
-    }
+        private readonly IQuoteService _quoteService;
 
-    [HttpGet]
-    public async Task<IActionResult> GetQuotes()
-    {
-        if (!IsValidTenant()) return TenantNotFound();
-
-        var quotes = await _quoteService.GetByTenantAsync(TenantId);
-        var response = quotes.Select(MapToResponseDto).ToList();
-
-        return Ok(response);
-    }
-
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetQuote(Guid id)
-    {
-        if (!IsValidTenant()) return TenantNotFound();
-
-        var quote = await _quoteService.GetByIdAsync(id, TenantId);
-        if (quote == null) return NotFound();
-
-        return Ok(MapToResponseDto(quote));
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> CreateQuote(CreateQuoteDto dto)
-    {
-        if (!IsValidTenant()) return TenantNotFound();
-
-        // Verificar que el plan existe
-        var travelPlan = await _travelPlanService.GetByIdAsync(dto.TravelPlanId, TenantId);
-        if (travelPlan == null) return BadRequest("Travel plan not found");
-
-        // Calcular precio total
-        var totalAmount = CalculateTotalAmount(travelPlan.BasePrice, dto.NumberOfPeople);
-
-        var quote = new Quote
+        public QuotesController(IQuoteService quoteService)
         {
-            TenantId = TenantId,
-            TravelPlanId = dto.TravelPlanId,
-            CustomerName = dto.CustomerName,
-            CustomerEmail = dto.CustomerEmail,
-            CustomerPhone = dto.CustomerPhone,
-            TravelDate = dto.TravelDate,
-            NumberOfPeople = dto.NumberOfPeople,
-            TotalAmount = totalAmount,
-            Notes = dto.Notes,
-            Status = QuoteStatus.Draft
-        };
+            _quoteService = quoteService;
+        }
 
-        var createdQuote = await _quoteService.CreateAsync(quote);
-        var response = MapToResponseDto(createdQuote);
-
-        return CreatedAtAction(nameof(GetQuote), new { id = response.Id }, response);
-    }
-
-    [HttpPut("{id}/status")]
-    public async Task<IActionResult> UpdateQuoteStatus(Guid id, QuoteStatus status)
-    {
-        if (!IsValidTenant()) return TenantNotFound();
-
-        var quote = await _quoteService.GetByIdAsync(id, TenantId);
-        if (quote == null) return NotFound();
-
-        quote.Status = status;
-        var updatedQuote = await _quoteService.UpdateAsync(quote);
-
-        return Ok(MapToResponseDto(updatedQuote));
-    }
-
-    private decimal CalculateTotalAmount(decimal basePrice, int numberOfPeople)
-    {
-        // Lógica básica de pricing
-        decimal total = basePrice * numberOfPeople;
-
-        // Descuentos por grupo
-        if (numberOfPeople >= 10)
-            total *= 0.9m; // 10% descuento para grupos grandes
-        else if (numberOfPeople >= 5)
-            total *= 0.95m; // 5% descuento para grupos medianos
-
-        return Math.Round(total, 2);
-    }
-
-    private static QuoteResponseDto MapToResponseDto(Quote quote)
-    {
-        return new QuoteResponseDto
+        [HttpGet]
+        public async Task<ActionResult<List<QuoteResponseDto>>> GetQuotes(
+            [FromQuery] int page = 1, 
+            [FromQuery] int pageSize = 10)
         {
-            Id = quote.Id,
-            QuoteNumber = quote.QuoteNumber,
-            CustomerName = quote.CustomerName,
-            CustomerEmail = quote.CustomerEmail,
-            CustomerPhone = quote.CustomerPhone,
-            TravelDate = quote.TravelDate,
-            NumberOfPeople = quote.NumberOfPeople,
-            TotalAmount = quote.TotalAmount,
-            Notes = quote.Notes,
-            Status = quote.Status,
-            CreatedAt = quote.CreatedAt,
-            ExpiresAt = quote.ExpiresAt,
-            TravelPlan = new TravelPlanResponseDto
+            var tenantId = GetTenantId();
+            var quotes = await _quoteService.GetQuotesByTenantAsync(tenantId, page, pageSize);
+            return Ok(quotes);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<QuoteResponseDto>> GetQuote(Guid id)
+        {
+            var tenantId = GetTenantId();
+            var quote = await _quoteService.GetQuoteByIdAsync(id, tenantId);
+            
+            if (quote == null)
+                return NotFound($"Quote with ID {id} not found");
+
+            return Ok(quote);
+        }
+
+        [HttpGet("customer/{customerId}")]
+        public async Task<ActionResult<List<QuoteResponseDto>>> GetQuotesByCustomer(Guid customerId)
+        {
+            var tenantId = GetTenantId();
+            var quotes = await _quoteService.GetQuotesByCustomerAsync(customerId, tenantId);
+            return Ok(quotes);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<QuoteResponseDto>> CreateQuote(CreateQuoteDto createQuoteDto)
+        {
+            try
             {
-                Id = quote.TravelPlan.Id,
-                Name = quote.TravelPlan.Name,
-                Description = quote.TravelPlan.Description,
-                BasePrice = quote.TravelPlan.BasePrice,
-                DurationDays = quote.TravelPlan.DurationDays,
-                Destinations = quote.TravelPlan.Destinations,
-                Services = quote.TravelPlan.Services,
-                Status = quote.TravelPlan.Status,
-                CreatedAt = quote.TravelPlan.CreatedAt,
-                UpdatedAt = quote.TravelPlan.UpdatedAt
+                var tenantId = GetTenantId();
+                var createdBy = GetUserName();
+                
+                var quote = await _quoteService.CreateQuoteAsync(createQuoteDto, tenantId, createdBy);
+                
+                return CreatedAtAction(
+                    nameof(GetQuote), 
+                    new { id = quote.Id }, 
+                    quote);
             }
-        };
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<QuoteResponseDto>> UpdateQuote(Guid id, CreateQuoteDto updateQuoteDto)
+        {
+            try
+            {
+                var tenantId = GetTenantId();
+                var quote = await _quoteService.UpdateQuoteAsync(id, updateQuoteDto, tenantId);
+                
+                if (quote == null)
+                    return NotFound($"Quote with ID {id} not found");
+
+                return Ok(quote);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPatch("{id}/status")]
+        public async Task<ActionResult<QuoteResponseDto>> UpdateQuoteStatus(Guid id, UpdateQuoteStatusDto statusDto)
+        {
+            try
+            {
+                var tenantId = GetTenantId();
+                var quote = await _quoteService.UpdateQuoteStatusAsync(id, statusDto, tenantId);
+                
+                if (quote == null)
+                    return NotFound($"Quote with ID {id} not found");
+
+                return Ok(quote);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteQuote(Guid id)
+        {
+            try
+            {
+                var tenantId = GetTenantId();
+                var deleted = await _quoteService.DeleteQuoteAsync(id, tenantId);
+                
+                if (!deleted)
+                    return NotFound($"Quote with ID {id} not found");
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("generate-number")]
+        public async Task<ActionResult<string>> GenerateQuoteNumber()
+        {
+            var tenantId = GetTenantId();
+            var quoteNumber = await _quoteService.GenerateQuoteNumberAsync(tenantId);
+            return Ok(new { quoteNumber });
+        }
+
+        [HttpGet("stats")]
+        public async Task<ActionResult> GetQuoteStats()
+        {
+            // TODO: Implement quote statistics
+            var tenantId = GetTenantId();
+            
+            // Placeholder response
+            var stats = new
+            {
+                totalQuotes = 0,
+                pendingQuotes = 0,
+                approvedQuotes = 0,
+                totalValue = 0m
+            };
+
+            return Ok(stats);
+        }
+
+        private Guid GetTenantId()
+        {
+            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
+            if (Guid.TryParse(tenantIdClaim, out Guid tenantId))
+                return tenantId;
+            
+            throw new UnauthorizedAccessException("Invalid tenant information");
+        }
+
+        private string GetUserName()
+        {
+            return User.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+        }
     }
 }

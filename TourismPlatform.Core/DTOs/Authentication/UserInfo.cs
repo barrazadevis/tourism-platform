@@ -1,4 +1,5 @@
 using TourismPlatform.Core.Entities;
+using TourismPlatform.Core.Enums;
 
 public class UserInfo
 {
