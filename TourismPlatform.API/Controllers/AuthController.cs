@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using TourismPlatform.Core.DTOs;
 using TourismPlatform.Data.Interfaces;
@@ -63,16 +64,14 @@ namespace TourismPlatform.API.Controllers
         }
 
         [HttpPost("validate")]
-        public async Task<ActionResult> ValidateToken([FromBody] ValidateTokenRequest request)
+        public async Task<ActionResult> ValidateToken()
         {
             try
             {
-                var isValid = await _authService.ValidateTokenAsync(request.Token);
-                
-                if (!isValid)
+                var token = HttpContext.Request.Headers["token"].FirstOrDefault();
+                if (string.IsNullOrEmpty((string?)token))
                     return Unauthorized(new { message = "Token inválido" });
-
-                var user = await _authService.GetUserFromTokenAsync(request.Token);
+                var user = await _authService.GetUserFromTokenAsync(token);
                 if (user == null)
                     return Unauthorized(new { message = "Usuario no encontrado" });
 

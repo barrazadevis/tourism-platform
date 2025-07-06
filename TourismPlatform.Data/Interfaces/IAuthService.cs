@@ -7,7 +7,7 @@ namespace TourismPlatform.Data.Services
     {
         Task<AuthResponseDto> LoginAsync(LoginRequestDto request, string tenantSubdomain);
         Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, string tenantSubdomain);
-        Task<bool> ValidateTokenAsync(string token);
         Task<User?> GetUserFromTokenAsync(string token);
+        Task<bool> ValidateTokenAsync(string token);
     }
 }

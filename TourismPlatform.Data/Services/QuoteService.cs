@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TourismPlatform.Core.DTOs.Quote;
 using TourismPlatform.Core.Entities;
 using TourismPlatform.Core.Enums;
+using TourismPlatform.Data.Common;
 using TourismPlatform.Data.Interfaces;
 
 namespace TourismPlatform.Data.Services;
@@ -23,7 +24,7 @@ public class QuoteService : IQuoteService
             throw new ArgumentException("Customer not found");
 
         var quoteNumber = await GenerateQuoteNumberAsync(tenantId);
-        
+        DateTimeUtils.EnsureUtcDateTimes(createQuoteDto);
         var quote = new Quote
         {
             QuoteNumber = quoteNumber,
@@ -267,6 +268,7 @@ public class QuoteService : IQuoteService
         {
             Id = quote.Id,
             QuoteNumber = quote.QuoteNumber,
+            CustomerId = quote.CustomerId,
             CustomerName = $"{quote.Customer.FirstName} {quote.Customer.LastName}",
             CustomerEmail = quote.Customer.Email,
             TravelPlanName = quote.TravelPlan?.Name ?? "",

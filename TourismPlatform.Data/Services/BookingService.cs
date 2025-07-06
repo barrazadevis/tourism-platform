@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TourismPlatform.Core.DTOs.Booking;
 using TourismPlatform.Core.Entities;
 using TourismPlatform.Core.Enums;
+using TourismPlatform.Data.Common;
 using TourismPlatform.Data.Interfaces;
 
 namespace TourismPlatform.Data.Services;
@@ -49,8 +50,10 @@ public class BookingService : IBookingService
         };
 
         // Add passengers
+        
         foreach (var passengerDto in createBookingDto.Passengers)
         {
+            DateTimeUtils.EnsureUtcDateTimes(passengerDto);
             booking.Passengers.Add(new Passenger
             {
                 Id = Guid.NewGuid(),

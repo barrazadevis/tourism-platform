@@ -114,7 +114,29 @@ namespace TourismPlatform.Data.Services
                 }
             };
         }
-
+        public async Task<User?> GetUserFromTokenAsync(string token)
+        {
+            try
+            {
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var jwtToken = tokenHandler.ReadJwtToken(token);
+                
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(x => x.Type == "sub")?.Value;
+                if (int.TryParse(userIdClaim, out int userId))
+                {
+                    return await _context.Users
+                        .Include(u => u.Tenant)
+                        .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
+                }
+                
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        
         public async Task<bool> ValidateTokenAsync(string token)
         {
             try
@@ -140,34 +162,11 @@ namespace TourismPlatform.Data.Services
             }
         }
 
-        public async Task<User?> GetUserFromTokenAsync(string token)
-        {
-            try
-            {
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var jwtToken = tokenHandler.ReadJwtToken(token);
-                
-                var userIdClaim = jwtToken.Claims.FirstOrDefault(x => x.Type == "sub")?.Value;
-                if (int.TryParse(userIdClaim, out int userId))
-                {
-                    return await _context.Users
-                        .Include(u => u.Tenant)
-                        .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
-                }
-                
-                return null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]);
-            
+
             var claims = new List<Claim>
             {
                 new Claim("sub", user.Id.ToString()),

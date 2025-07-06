@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TourismPlatform.Core.DTOs.Analytic;
 using TourismPlatform.Core.Entities;
 using TourismPlatform.Core.Enums;
+using TourismPlatform.Data.Common;
 using TourismPlatform.Data.Interfaces;
 
 namespace TourismPlatform.Data.Services;
@@ -19,6 +20,7 @@ public class AnalyticsService : IAnalyticsService
     {
         var now = DateTime.UtcNow;
         var thisMonth = new DateTime(now.Year, now.Month, 1);
+        DateTimeUtils.EnsureUtcDateTimes(thisMonth);
 
         var totalCustomers = await _context.Customers.CountAsync(c => c.TenantId == tenantId);
         var totalQuotes = await _context.Quotes.CountAsync(q => q.TenantId == tenantId);
@@ -33,16 +35,16 @@ public class AnalyticsService : IAnalyticsService
             .SumAsync(b => b.PendingAmount);
 
         var newCustomersThisMonth = await _context.Customers
-            .CountAsync(c => c.TenantId == tenantId && c.CreatedAt >= thisMonth);
+            .CountAsync(c => c.TenantId == tenantId && c.CreatedAt.ToUniversalTime() >= thisMonth.ToUniversalTime());
 
         var quotesThisMonth = await _context.Quotes
-            .CountAsync(q => q.TenantId == tenantId && q.CreatedAt >= thisMonth);
+            .CountAsync(q => q.TenantId == tenantId && q.CreatedAt.ToUniversalTime() >= thisMonth.ToUniversalTime());
 
         var bookingsThisMonth = await _context.Bookings
-            .CountAsync(b => b.TenantId == tenantId && b.CreatedAt >= thisMonth);
+            .CountAsync(b => b.TenantId == tenantId && b.CreatedAt.ToUniversalTime() >= thisMonth.ToUniversalTime());
 
         var revenueThisMonth = await _context.Bookings
-            .Where(b => b.TenantId == tenantId && b.CreatedAt >= thisMonth && b.Status == BookingStatus.Completed)
+            .Where(b => b.TenantId == tenantId && b.CreatedAt.ToUniversalTime() >= thisMonth.ToUniversalTime() && b.Status == BookingStatus.Completed)
             .SumAsync(b => b.TotalPaid);
 
         return new DashboardStatsDto
@@ -64,8 +66,8 @@ public class AnalyticsService : IAnalyticsService
         var payments = await _context.Payments
             .Include(p => p.Booking)
             .Where(p => p.TenantId == tenantId && 
-                        p.PaymentDate >= fromDate && 
-                        p.PaymentDate <= toDate &&
+                        p.PaymentDate >= fromDate.ToUniversalTime() && 
+                        p.PaymentDate <= toDate.ToUniversalTime() &&
                         p.PaymentStatus == PaymentStatus.Paid)
             .GroupBy(p => p.PaymentDate.Date)
             .Select(g => new RevenueReportDto
