@@ -7,7 +7,7 @@ public class TravelPlanResponseDto
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public string Destination { get; set; } = string.Empty;
+    public Guid DestinationId { get; set; } = Guid.NewGuid();
     public int DurationDays { get; set; }
     public decimal BasePrice { get; set; }
     public string PlanType { get; set; } = string.Empty;

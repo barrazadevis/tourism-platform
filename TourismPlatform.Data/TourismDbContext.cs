@@ -26,9 +26,25 @@ namespace TourismPlatform.Data
         public DbSet<SupplierService> SupplierServices { get; set; }
         public DbSet<Document> Documents { get; set; }
         public DbSet<BookingMetric> BookingMetrics { get; set; }
+        public DbSet<Destination> Destinations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Destination entity
+            modelBuilder.Entity<Destination>(entity =>
+            {
+                entity.HasIndex(e => new { e.Country, e.City })
+                      .IsUnique()
+                      .HasDatabaseName("IX_destinations_country_city");
+                
+                entity.Property(e => e.Country)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(e => e.City)
+                      .IsRequired()
+                      .HasMaxLength(100);
+            });
             // Application entity
             modelBuilder.Entity<Application>(entity =>
             {
@@ -101,7 +117,6 @@ namespace TourismPlatform.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.Destination).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.PlanType).HasMaxLength(100);
                 entity.Property(e => e.BasePrice).HasColumnType("decimal(18,2)");
 
@@ -109,6 +124,11 @@ namespace TourismPlatform.Data
                       .WithMany(t => t.TravelPlans)
                       .HasForeignKey(tp => tp.TenantId)
                       .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Destination)
+                      .WithMany(d => d.TravelPlans)
+                      .HasForeignKey(e => e.DestinationId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Quote entity
@@ -138,6 +158,11 @@ namespace TourismPlatform.Data
                       .WithMany(t => t.Quotes)
                       .HasForeignKey(q => q.TenantId)
                       .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.CustomDestination)
+                      .WithMany(d => d.Quotes)
+                      .HasForeignKey(e => e.CustomDestinationId)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             // QuoteItem configurations
@@ -177,7 +202,7 @@ namespace TourismPlatform.Data
                 entity.Property(e => e.BookingNumber).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.TotalPaid).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.PendingAmount).HasColumnType("decimal(18,2)");
-                
+
                 entity.HasOne(e => e.Quote)
                     .WithMany(q => q.Bookings)
                     .HasForeignKey(e => e.QuoteId)

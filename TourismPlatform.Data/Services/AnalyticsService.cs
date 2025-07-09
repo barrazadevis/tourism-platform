@@ -132,7 +132,9 @@ public class AnalyticsService : IAnalyticsService
             .GroupBy(b => b.Quote.TravelPlan!.Destination)
             .Select(g => new PopularDestinationsDto
             {
-                Destination = g.Key,
+                Destination = g.Where(b => b.Quote.TravelPlan != null && b.Quote.TravelPlan.Destination != null)
+                               .Select(b => b.Quote.TravelPlan!.Destination!.City)
+                               .FirstOrDefault() ?? string.Empty,
                 BookingCount = g.Count(),
                 TotalRevenue = g.Where(b => b.Status == BookingStatus.Completed).Sum(b => b.TotalPaid),
                 AveragePrice = g.Where(b => b.Status == BookingStatus.Completed).Average(b => b.TotalPaid)

@@ -12,8 +12,8 @@ using TourismPlatform.Data;
 namespace TourismPlatform.API.Migrations
 {
     [DbContext(typeof(TourismDbContext))]
-    [Migration("20250629204513_ChangeModel_AddNewEntities")]
-    partial class ChangeModel_AddNewEntities
+    [Migration("20250709003209_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -237,6 +237,52 @@ namespace TourismPlatform.API.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("TourismPlatform.Core.Entities.Destination", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CountryCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Region")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Country", "City")
+                        .IsUnique()
+                        .HasDatabaseName("IX_destinations_country_city");
+
+                    b.ToTable("Destinations");
                 });
 
             modelBuilder.Entity("TourismPlatform.Core.Entities.Document", b =>
@@ -470,6 +516,9 @@ namespace TourismPlatform.API.Migrations
                         .HasMaxLength(3)
                         .HasColumnType("character varying(3)");
 
+                    b.Property<Guid?>("CustomDestinationId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uuid");
 
@@ -528,6 +577,8 @@ namespace TourismPlatform.API.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CustomDestinationId");
 
                     b.HasIndex("CustomerId");
 
@@ -795,10 +846,8 @@ namespace TourismPlatform.API.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<string>("Destination")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                    b.Property<Guid>("DestinationId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("DurationDays")
                         .HasColumnType("integer");
@@ -831,6 +880,8 @@ namespace TourismPlatform.API.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DestinationId");
 
                     b.HasIndex("TenantId");
 
@@ -1021,6 +1072,11 @@ namespace TourismPlatform.API.Migrations
 
             modelBuilder.Entity("TourismPlatform.Core.Entities.Quote", b =>
                 {
+                    b.HasOne("TourismPlatform.Core.Entities.Destination", "CustomDestination")
+                        .WithMany("Quotes")
+                        .HasForeignKey("CustomDestinationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("TourismPlatform.Core.Entities.Customer", "Customer")
                         .WithMany("Quotes")
                         .HasForeignKey("CustomerId")
@@ -1037,6 +1093,8 @@ namespace TourismPlatform.API.Migrations
                         .WithMany("Quotes")
                         .HasForeignKey("TravelPlanId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CustomDestination");
 
                     b.Navigation("Customer");
 
@@ -1102,11 +1160,19 @@ namespace TourismPlatform.API.Migrations
 
             modelBuilder.Entity("TourismPlatform.Core.Entities.TravelPlan", b =>
                 {
+                    b.HasOne("TourismPlatform.Core.Entities.Destination", "Destination")
+                        .WithMany("TravelPlans")
+                        .HasForeignKey("DestinationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("TourismPlatform.Core.Entities.Tenant", "Tenant")
                         .WithMany("TravelPlans")
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Destination");
 
                     b.Navigation("Tenant");
                 });
@@ -1155,6 +1221,13 @@ namespace TourismPlatform.API.Migrations
                     b.Navigation("Passengers");
 
                     b.Navigation("Quotes");
+                });
+
+            modelBuilder.Entity("TourismPlatform.Core.Entities.Destination", b =>
+                {
+                    b.Navigation("Quotes");
+
+                    b.Navigation("TravelPlans");
                 });
 
             modelBuilder.Entity("TourismPlatform.Core.Entities.Quote", b =>

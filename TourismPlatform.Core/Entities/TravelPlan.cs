@@ -8,9 +8,9 @@ public class TravelPlan
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public string Destination { get; set; } = string.Empty;
+    public Guid DestinationId { get; set; }
     public int DurationDays { get; set; }
-    
+
     [Column(TypeName = "decimal(18,2)")]
     public decimal BasePrice { get; set; }
     public string PlanType { get; set; } = string.Empty;
@@ -25,4 +25,5 @@ public class TravelPlan
     public Tenant Tenant { get; set; } = null!;
     public List<PlanService> Services { get; set; } = new();
     public List<Quote> Quotes { get; set; } = new();
+    public Destination Destination { get; set; } = null!;
 }

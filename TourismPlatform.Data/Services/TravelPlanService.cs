@@ -21,7 +21,7 @@ public class TravelPlanService : ITravelPlanService
                 Id = Guid.NewGuid(),
                 Name = createDto.Name,
                 Description = createDto.Description,
-                Destination = createDto.Destination,
+                DestinationId = createDto.DestinationId,
                 DurationDays = createDto.DurationDays,
                 BasePrice = createDto.BasePrice,
                 PlanType = createDto.PlanType,
@@ -80,12 +80,13 @@ public class TravelPlanService : ITravelPlanService
                 query = query.Where(tp => 
                     tp.Name.ToLower().Contains(searchTerm) ||
                     tp.Description.ToLower().Contains(searchTerm) ||
-                    tp.Destination.ToLower().Contains(searchTerm));
+                    tp.DestinationId.ToString().Contains(searchTerm)
+                );
             }
 
             if (!string.IsNullOrEmpty(searchDto.Destination))
             {
-                query = query.Where(tp => tp.Destination.ToLower().Contains(searchDto.Destination.ToLower()));
+                query = query.Where(tp => tp.DestinationId.ToString().Contains(searchDto.Destination.ToLower()));
             }
 
             if (!string.IsNullOrEmpty(searchDto.PlanType))
@@ -138,7 +139,7 @@ public class TravelPlanService : ITravelPlanService
             // Update basic properties
             travelPlan.Name = updateDto.Name;
             travelPlan.Description = updateDto.Description;
-            travelPlan.Destination = updateDto.Destination;
+            travelPlan.DestinationId = updateDto.DestinationId;
             travelPlan.DurationDays = updateDto.DurationDays;
             travelPlan.BasePrice = updateDto.BasePrice;
             travelPlan.PlanType = updateDto.PlanType;
@@ -208,7 +209,7 @@ public class TravelPlanService : ITravelPlanService
         {
             return await _context.TravelPlans
                 .Where(tp => tp.TenantId == tenantId && tp.IsActive)
-                .Select(tp => tp.Destination)
+                .Select(tp => tp.DestinationId.ToString())
                 .Distinct()
                 .OrderBy(d => d)
                 .ToListAsync();
@@ -233,7 +234,7 @@ public class TravelPlanService : ITravelPlanService
                 Id = travelPlan.Id,
                 Name = travelPlan.Name,
                 Description = travelPlan.Description,
-                Destination = travelPlan.Destination,
+                DestinationId = travelPlan.DestinationId,
                 DurationDays = travelPlan.DurationDays,
                 BasePrice = travelPlan.BasePrice,
                 PlanType = travelPlan.PlanType,
