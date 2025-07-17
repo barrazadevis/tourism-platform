@@ -13,6 +13,7 @@ namespace TourismPlatform.Data
         
         // Tourism entities
         public DbSet<Tenant> Tenants { get; set; }
+        public DbSet<Company> Companies { get; set; }
         public DbSet<TravelPlan> TravelPlans { get; set; }
         public DbSet<Quote> Quotes { get; set; }
         public DbSet<Customer> Customers { get; set; }
@@ -71,6 +72,11 @@ namespace TourismPlatform.Data
                       .HasForeignKey(u => u.TenantId)
                       .OnDelete(DeleteBehavior.Cascade);
 
+                  entity.HasOne(u => u.Company)
+                      .WithMany(t => t.Users)
+                      .HasForeignKey(u => u.CompanyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
                 entity.HasOne(u => u.Application)
                       .WithMany(a => a.Users)
                       .HasForeignKey(u => u.ApplicationId)
@@ -92,23 +98,41 @@ namespace TourismPlatform.Data
                       .HasForeignKey(t => t.ApplicationId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
+            
+            // Company entity
+            modelBuilder.Entity<Company>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.PlanType).IsRequired().HasMaxLength(20);
+                entity.HasOne(t => t.Application)
+                      .WithMany(a => a.Companies)
+                      .HasForeignKey(t => t.ApplicationId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
 
             // Customer configurations
-            modelBuilder.Entity<Customer>(entity =>
+                  modelBuilder.Entity<Customer>(entity =>
             {
-                entity.HasIndex(e => e.Email);
-                entity.HasIndex(e => e.DocumentNumber);
-                entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Phone).HasMaxLength(20);
-                entity.Property(e => e.DocumentType).HasMaxLength(50);
-                entity.Property(e => e.DocumentNumber).HasMaxLength(50);
+                  entity.HasIndex(e => e.Email);
+                  entity.HasIndex(e => e.DocumentNumber);
+                  entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
+                  entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
+                  entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);
+                  entity.Property(e => e.Phone).HasMaxLength(20);
+                  entity.Property(e => e.DocumentType).HasMaxLength(50);
+                  entity.Property(e => e.DocumentNumber).HasMaxLength(50);
 
-                entity.HasOne(c => c.Tenant)
-                      .WithMany()
-                      .HasForeignKey(c => c.TenantId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                  entity.HasOne(c => c.Tenant)
+                        .WithMany()
+                        .HasForeignKey(c => c.TenantId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                  entity.HasOne(c => c.Company)
+                        .WithMany()
+                        .HasForeignKey(c => c.CompanyId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
             });
 
             // TravelPlan entity
@@ -125,7 +149,12 @@ namespace TourismPlatform.Data
                       .HasForeignKey(tp => tp.TenantId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(e => e.Destination)
+                  entity.HasOne(e => e.Company)
+                        .WithMany(c => c.TravelPlans)
+                        .HasForeignKey(e => e.CompanyId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                  entity.HasOne(e => e.Destination)
                       .WithMany(d => d.TravelPlans)
                       .HasForeignKey(e => e.DestinationId)
                       .OnDelete(DeleteBehavior.Restrict);
@@ -159,7 +188,12 @@ namespace TourismPlatform.Data
                       .HasForeignKey(q => q.TenantId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(e => e.CustomDestination)
+                  entity.HasOne(e => e.Company)
+                      .WithMany(c => c.Quotes)
+                      .HasForeignKey(e => e.CompanyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                  entity.HasOne(e => e.CustomDestination)
                       .WithMany(d => d.Quotes)
                       .HasForeignKey(e => e.CustomDestinationId)
                       .OnDelete(DeleteBehavior.SetNull);
@@ -198,25 +232,31 @@ namespace TourismPlatform.Data
             // Booking configurations
             modelBuilder.Entity<Booking>(entity =>
             {
-                entity.HasIndex(e => e.BookingNumber).IsUnique();
-                entity.Property(e => e.BookingNumber).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.TotalPaid).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.PendingAmount).HasColumnType("decimal(18,2)");
+                  entity.HasIndex(e => e.BookingNumber).IsUnique();
+                  entity.Property(e => e.BookingNumber).IsRequired().HasMaxLength(50);
+                  entity.Property(e => e.TotalPaid).HasColumnType("decimal(18,2)");
+                  entity.Property(e => e.PendingAmount).HasColumnType("decimal(18,2)");
 
-                entity.HasOne(e => e.Quote)
-                    .WithMany(q => q.Bookings)
-                    .HasForeignKey(e => e.QuoteId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                  entity.HasOne(e => e.Quote)
+                      .WithMany(q => q.Bookings)
+                      .HasForeignKey(e => e.QuoteId)
+                      .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(e => e.Customer)
-                    .WithMany(c => c.Bookings)
-                    .HasForeignKey(e => e.CustomerId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                  entity.HasOne(e => e.Customer)
+                      .WithMany(c => c.Bookings)
+                      .HasForeignKey(e => e.CustomerId)
+                      .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(e => e.Tenant)
-                    .WithMany()
-                    .HasForeignKey(e => e.TenantId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                  entity.HasOne(e => e.Tenant)
+                      .WithMany()
+                      .HasForeignKey(e => e.TenantId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                  entity.HasOne(e => e.Company)
+                      .WithMany()
+                      .HasForeignKey(e => e.CompanyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                    
             });
 
             // Passenger configurations
@@ -243,35 +283,45 @@ namespace TourismPlatform.Data
             // Payment configurations
             modelBuilder.Entity<Payment>(entity =>
             {
-                entity.HasIndex(e => e.PaymentNumber).IsUnique();
-                entity.Property(e => e.PaymentNumber).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.PaymentMethod).HasMaxLength(100);
-                entity.Property(e => e.Currency).HasMaxLength(3);
-                entity.Property(e => e.TransactionId).HasMaxLength(200);
+                  entity.HasIndex(e => e.PaymentNumber).IsUnique();
+                  entity.Property(e => e.PaymentNumber).IsRequired().HasMaxLength(50);
+                  entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+                  entity.Property(e => e.PaymentMethod).HasMaxLength(100);
+                  entity.Property(e => e.Currency).HasMaxLength(3);
+                  entity.Property(e => e.TransactionId).HasMaxLength(200);
 
-                entity.HasOne(p => p.Booking)
-                      .WithMany(b => b.Payments)
-                      .HasForeignKey(p => p.BookingId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                  entity.HasOne(p => p.Booking)
+                        .WithMany(b => b.Payments)
+                        .HasForeignKey(p => p.BookingId)
+                        .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(p => p.Tenant)
+                  entity.HasOne(p => p.Tenant)
+                        .WithMany()
+                        .HasForeignKey(p => p.TenantId)
+                        .OnDelete(DeleteBehavior.Cascade);
+                  
+                  entity.HasOne(p => p.Company)
                       .WithMany()
-                      .HasForeignKey(p => p.TenantId)
+                      .HasForeignKey(p => p.CompanyId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Supplier configurations
             modelBuilder.Entity<Supplier>(entity =>
             {
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.ContactEmail).HasMaxLength(255);
-                entity.Property(e => e.ContactPhone).HasMaxLength(20);
-                entity.Property(e => e.SupplierType).HasMaxLength(100);
+                  entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                  entity.Property(e => e.ContactEmail).HasMaxLength(255);
+                  entity.Property(e => e.ContactPhone).HasMaxLength(20);
+                  entity.Property(e => e.SupplierType).HasMaxLength(100);
 
-                entity.HasOne(s => s.Tenant)
+                  entity.HasOne(s => s.Tenant)
+                        .WithMany()
+                        .HasForeignKey(s => s.TenantId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                  entity.HasOne(s => s.Company)
                       .WithMany()
-                      .HasForeignKey(s => s.TenantId)
+                      .HasForeignKey(s => s.CompanyId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
@@ -292,38 +342,48 @@ namespace TourismPlatform.Data
             // Document configurations
             modelBuilder.Entity<Document>(entity =>
             {
-                entity.Property(e => e.DocumentType).HasMaxLength(100);
-                entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.FilePath).IsRequired().HasMaxLength(500);
-                entity.Property(e => e.FileExtension).HasMaxLength(10);
-                entity.Property(e => e.UploadedBy).HasMaxLength(100);
+                  entity.Property(e => e.DocumentType).HasMaxLength(100);
+                  entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
+                  entity.Property(e => e.FilePath).IsRequired().HasMaxLength(500);
+                  entity.Property(e => e.FileExtension).HasMaxLength(10);
+                  entity.Property(e => e.UploadedBy).HasMaxLength(100);
 
-                entity.HasOne(d => d.Booking)
-                      .WithMany(b => b.Documents)
-                      .HasForeignKey(d => d.BookingId)
-                      .OnDelete(DeleteBehavior.SetNull);
+                  entity.HasOne(d => d.Booking)
+                        .WithMany(b => b.Documents)
+                        .HasForeignKey(d => d.BookingId)
+                        .OnDelete(DeleteBehavior.SetNull);
 
-                entity.HasOne(d => d.Customer)
-                      .WithMany(c => c.Documents)
-                      .HasForeignKey(d => d.CustomerId)
-                      .OnDelete(DeleteBehavior.SetNull);
+                  entity.HasOne(d => d.Customer)
+                        .WithMany(c => c.Documents)
+                        .HasForeignKey(d => d.CustomerId)
+                        .OnDelete(DeleteBehavior.SetNull);
 
-                entity.HasOne(d => d.Tenant)
+                  entity.HasOne(d => d.Tenant)
+                        .WithMany()
+                        .HasForeignKey(d => d.TenantId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                  entity.HasOne(d => d.Company)
                       .WithMany()
-                      .HasForeignKey(d => d.TenantId)
+                      .HasForeignKey(d => d.CompanyId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
             // BookingMetric configurations
             modelBuilder.Entity<BookingMetric>(entity =>
             {
-                entity.Property(e => e.TotalRevenue).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.AverageBookingValue).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.Period).HasMaxLength(50);
+                  entity.Property(e => e.TotalRevenue).HasColumnType("decimal(18,2)");
+                  entity.Property(e => e.AverageBookingValue).HasColumnType("decimal(18,2)");
+                  entity.Property(e => e.Period).HasMaxLength(50);
 
-                entity.HasOne(bm => bm.Tenant)
+                  entity.HasOne(bm => bm.Tenant)
+                        .WithMany()
+                        .HasForeignKey(bm => bm.TenantId)
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                  entity.HasOne(bm => bm.Company)
                       .WithMany()
-                      .HasForeignKey(bm => bm.TenantId)
+                      .HasForeignKey(bm => bm.CompanyId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 

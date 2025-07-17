@@ -34,6 +34,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddAuthentication();
+
 // Services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -46,12 +48,10 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<ISupplierService, SuppliersService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IDestinationService, DestinationService>();
 
 // Add controllers
-builder.Services.AddControllers(mvcOpts =>
-{
-    mvcOpts.Filters.Add<RequestValidationFilterAttribute>();
-});
+builder.Services.AddControllers();
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -128,10 +128,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 app.UseAuthentication();
-
-// Tenant resolution middleware (before authorization)
-app.UseMiddleware<TenantMiddleware>();
-
 app.UseAuthorization();
 app.MapControllers();
 

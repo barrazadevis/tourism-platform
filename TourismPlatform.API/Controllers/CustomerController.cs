@@ -7,7 +7,8 @@ namespace TourismPlatform.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class CustomersController : ControllerBase
+    [Authorize]
+    public class CustomersController : BaseController
     {
         private readonly ICustomerService _customerService;
 
@@ -171,15 +172,6 @@ namespace TourismPlatform.API.Controllers
             };
 
             return Ok(stats);
-        }
-
-        private Guid GetTenantId()
-        {
-            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
-            if (Guid.TryParse(tenantIdClaim, out Guid tenantId))
-                return tenantId;
-
-            throw new UnauthorizedAccessException("Invalid tenant information");
         }
     }
 }

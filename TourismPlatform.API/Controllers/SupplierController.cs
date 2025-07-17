@@ -8,7 +8,7 @@ namespace TourismPlatform.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class SuppliersController : ControllerBase
+    public class SuppliersController : BaseController
     {
         private readonly ISupplierService _supplierService;
 
@@ -135,15 +135,6 @@ namespace TourismPlatform.API.Controllers
             var tenantId = GetTenantId();
             var types = await _supplierService.GetSupplierTypesAsync(tenantId);
             return Ok(types);
-        }
-
-        private Guid GetTenantId()
-        {
-            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
-            if (Guid.TryParse(tenantIdClaim, out Guid tenantId))
-                return tenantId;
-            
-            throw new UnauthorizedAccessException("Invalid tenant information");
         }
     }
 }

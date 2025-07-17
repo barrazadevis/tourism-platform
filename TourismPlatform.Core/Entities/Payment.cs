@@ -20,8 +20,10 @@ public class Payment
     public string Notes { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public Guid TenantId { get; set; }
+    public Guid CompanyId { get; set; }
 
     // Navigation properties
     public Booking Booking { get; set; } = null!;
     public Tenant Tenant { get; set; } = null!;
+    public Company Company { get; set; } = null!;
 }

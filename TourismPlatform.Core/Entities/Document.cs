@@ -15,9 +15,11 @@ public class Document
     public DateTime UploadedAt { get; set; }
     public string UploadedBy { get; set; } = string.Empty;
     public Guid TenantId { get; set; }
+    public Guid? CompanyId { get; set; }
 
     // Navigation properties
     public Booking? Booking { get; set; }
     public Customer? Customer { get; set; }
     public Tenant Tenant { get; set; } = null!;
+    public Company? Company { get; set; }
 }

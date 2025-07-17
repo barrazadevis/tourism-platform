@@ -1,49 +1,30 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using TourismPlatform.Core.Entities;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using TourismPlatform.API.Middleware;
 
-namespace TourismPlatform.API.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public abstract class BaseController : ControllerBase
+namespace TourismPlatform.API.Controllers
 {
-    protected Tenant? CurrentTenant => HttpContext.Items["Tenant"] as Tenant;
-    protected Guid TenantId => CurrentTenant?.Id ?? Guid.Empty;
-    
-    // Auth context
-    protected Guid? AuthenticatedUserId => 
-        HttpContext.Items["UserId"] as Guid?;
-    protected string? AuthenticatedUserName => 
-        HttpContext.Items["UserName"] as string;
-    protected string? AuthenticatedUserEmail => 
-        HttpContext.Items["UserEmail"] as string;
-    protected string? AuthenticatedUserRole => 
-        HttpContext.Items["UserRole"] as string;
-    protected Guid? AuthenticatedTenantId => 
-        HttpContext.Items["AuthenticatedTenantId"] as Guid?;
-
-    protected IActionResult TenantNotFound()
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize]
+    public class BaseController : ControllerBase
     {
-        return BadRequest(new { error = "Tenant not found or invalid" });
-    }
+        protected Guid GetTenantId()
+        {
+            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
+            if (Guid.TryParse(tenantIdClaim, out Guid tenantId))
+                return tenantId;
 
-    protected IActionResult Unauthorized()
-    {
-        return StatusCode(401, new { error = "Authentication required" });
-    }
+            throw new UnauthorizedAccessException("Invalid tenant information");
+        }
 
-    protected bool IsValidTenant()
-    {
-        return CurrentTenant != null && TenantId != Guid.Empty;
-    }
+        protected string GetUserId()
+        {
+            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? throw new UnauthorizedAccessException("Invalid user information");
+        }
 
-    protected bool IsAuthenticated()
-    {
-        return AuthenticatedUserId.HasValue;
-    }
-
-    protected bool HasTenantAccess()
-    {
-        return IsAuthenticated() && AuthenticatedTenantId == TenantId;
     }
 }

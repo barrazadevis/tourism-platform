@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TourismPlatform.API.Middleware;
 using TourismPlatform.Core.DTOs.Analytic;
 using TourismPlatform.Data.Interfaces;
 
@@ -8,7 +9,7 @@ namespace TourismPlatform.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class AnalyticsController : ControllerBase
+    public class AnalyticsController : BaseController
     {
         private readonly IAnalyticsService _analyticsService;
 
@@ -72,15 +73,6 @@ namespace TourismPlatform.API.Controllers
             {
                 return StatusCode(500, $"Error generating metrics: {ex.Message}");
             }
-        }
-
-        private Guid GetTenantId()
-        {
-            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
-            if (Guid.TryParse(tenantIdClaim, out Guid tenantId))
-                return tenantId;
-            
-            throw new UnauthorizedAccessException("Invalid tenant information");
         }
     }
 }

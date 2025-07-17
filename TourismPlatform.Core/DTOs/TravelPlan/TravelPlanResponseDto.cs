@@ -16,8 +16,7 @@ public class TravelPlanResponseDto
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    
-    public List<PlanServiceResponseDto> Services { get; set; } = new();
     public int TotalQuotes { get; set; }
     public decimal TotalPrice { get; set; }
+    public List<PlanServiceResponseDto> Services { get; set; } = new();
 }

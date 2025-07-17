@@ -8,7 +8,7 @@ namespace TourismPlatform.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class DocumentsController : ControllerBase
+    public class DocumentsController : BaseController
     {
         private readonly IDocumentService _documentService;
 
@@ -61,7 +61,7 @@ namespace TourismPlatform.API.Controllers
             try
             {
                 var tenantId = GetTenantId();
-                var uploadedBy = GetUserName();
+                var uploadedBy = GetUserId();
                 
                 var document = await _documentService.UploadDocumentAsync(uploadDto, tenantId, uploadedBy);
                 
@@ -125,20 +125,6 @@ namespace TourismPlatform.API.Controllers
             var tenantId = GetTenantId();
             var types = await _documentService.GetDocumentTypesAsync(tenantId);
             return Ok(types);
-        }
-
-        private Guid GetTenantId()
-        {
-            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
-            if (Guid.TryParse(tenantIdClaim, out Guid tenantId))
-                return tenantId;
-            
-            throw new UnauthorizedAccessException("Invalid tenant information");
-        }
-
-        private string GetUserName()
-        {
-            return User.FindFirst("name")?.Value ?? "Unknown";
         }
     }
 }

@@ -24,9 +24,8 @@ public class TravelPlanService : ITravelPlanService
                 DestinationId = createDto.DestinationId,
                 DurationDays = createDto.DurationDays,
                 BasePrice = createDto.BasePrice,
-                PlanType = createDto.PlanType,
-                Inclusions = createDto.Inclusions,
-                Exclusions = createDto.Exclusions,
+                Inclusions = string.Join(", ", createDto.Inclusions),
+                Exclusions = string.Join(", ", createDto.Exclusions),
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 TenantId = tenantId
@@ -142,9 +141,8 @@ public class TravelPlanService : ITravelPlanService
             travelPlan.DestinationId = updateDto.DestinationId;
             travelPlan.DurationDays = updateDto.DurationDays;
             travelPlan.BasePrice = updateDto.BasePrice;
-            travelPlan.PlanType = updateDto.PlanType;
-            travelPlan.Inclusions = updateDto.Inclusions;
-            travelPlan.Exclusions = updateDto.Exclusions;
+            travelPlan.Inclusions = string.Join(", ", updateDto.Inclusions);
+            travelPlan.Exclusions = string.Join(", ", updateDto.Exclusions);
             travelPlan.UpdatedAt = DateTime.UtcNow;
 
             // Remove existing services

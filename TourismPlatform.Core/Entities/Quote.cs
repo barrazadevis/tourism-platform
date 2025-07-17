@@ -39,11 +39,13 @@ public class Quote
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public Guid TenantId { get; set; }
+    public Guid CompanyId { get; set; }
 
     // Navigation properties
     public Customer Customer { get; set; } = null!;
     public TravelPlan? TravelPlan { get; set; }
     public Tenant Tenant { get; set; } = null!;
+    public Company Company { get; set; } = null!;
     public List<QuoteItem> Items { get; set; } = new();
     public List<QuoteHotel> Hotels { get; set; } = new();
     public List<Booking> Bookings { get; set; } = new();

@@ -1,4 +1,6 @@
 # .NET
+vs/
+.vs/
 bin/
 obj/
 *.user
@@ -39,6 +41,7 @@ Thumbs.db
 # Logs
 logs/
 *.log
+.vs/ProjectEvaluation
 .vs/ProjectEvaluation/tourismplatform.metadata.v7.bin
 .vs/ProjectEvaluation/tourismplatform.metadata.v7.bin
 .vs/ProjectEvaluation/tourismplatform.metadata.v7.bin
@@ -56,4 +59,12 @@ logs/
 .vs/TourismPlatform/v17/.futdcache.v2
 .vs/ProjectEvaluation/tourismplatform.metadata.v7.bin
 .vs/ProjectEvaluation/tourismplatform.projects.v7.bin
+.vs/ProjectEvaluation/tourismplatform.metadata.v7.bin
+.vs/ProjectEvaluation/tourismplatform.metadata.v7.bin
+.vs/ProjectEvaluation/tourismplatform.metadata.v7.bin
+.vs/ProjectEvaluation/tourismplatform.projects.v7.bin
+.vs/TourismPlatform/FileContentIndex/49cec2a2-9859-4313-91aa-d3fe33375943.vsidx
+.vs/TourismPlatform/FileContentIndex/70905f6c-30d0-4781-8c52-9669cf475833.vsidx
+.vs/TourismPlatform/FileContentIndex/dd9cd721-afc4-4143-82b3-cd5c10c28d40.vsidx
+.vs/TourismPlatform/v17/.futdcache.v2
 .vs/ProjectEvaluation/tourismplatform.metadata.v7.bin

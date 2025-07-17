@@ -8,7 +8,7 @@ namespace TourismPlatform.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class TravelPlansController : ControllerBase
+    public class TravelPlansController : BaseController
     {
         private readonly ITravelPlanService _travelPlanService;
 
@@ -155,15 +155,6 @@ namespace TourismPlatform.API.Controllers
             var tenantId = GetTenantId();
             var planTypes = await _travelPlanService.GetPlanTypesAsync(tenantId);
             return Ok(planTypes);
-        }
-
-        private Guid GetTenantId()
-        {
-            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
-            if (Guid.TryParse(tenantIdClaim, out Guid tenantId))
-                return tenantId;
-            
-            throw new UnauthorizedAccessException("Invalid tenant information");
         }
     }
 }

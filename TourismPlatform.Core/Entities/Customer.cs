@@ -20,9 +20,11 @@ public class Customer
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public Guid TenantId { get; set; }
+        public Guid? CompanyId { get; set; } // Nullable for multi-tenant scenarios
 
         // Navigation properties
-        public Tenant Tenant { get; set; } = null!;
+    public Tenant Tenant { get; set; } = null!;
+        public Company Company { get; set; } = null!;
         public List<Quote> Quotes { get; set; } = new();
         public List<Booking> Bookings { get; set; } = new();
         public List<Passenger> Passengers { get; set; } = new();

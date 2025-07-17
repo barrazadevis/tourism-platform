@@ -11,5 +11,6 @@ namespace TourismPlatform.Core.Entities
         // Navigation properties
         public ICollection<Tenant> Tenants { get; set; } = new List<Tenant>();
         public ICollection<User> Users { get; set; } = new List<User>();
+        public ICollection<Company> Companies { get; set; } = new List<Company>();
     }
 }

@@ -24,9 +24,9 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenant = await _tenantService.GetCurrentTenantAsync();
+                var tenant = await _tenantService.GetBySubdomainAsync(request.TenantSubdomain);
                 if (tenant == null)
-                    return BadRequest("Tenant no encontrado");
+                    return BadRequest("Tenant no encontrado. Verifique la URL.");
 
                 var response = await _authService.LoginAsync(request, tenant.Subdomain);
                 return Ok(response);
@@ -46,9 +46,13 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenant = await _tenantService.GetCurrentTenantAsync();
+                var tenant = await _tenantService.GetBySubdomainAsync(request.TenantSubdomain);
                 if (tenant == null)
-                    return BadRequest("Tenant no encontrado");
+                    return BadRequest(new { message = "Tenant no encontrado. Verifique la URL." });
+
+                // Verificar que el tenant esté activo
+                if (!tenant.IsActive)
+                    return BadRequest(new { message = "El tenant no está activo para registros." });
 
                 var response = await _authService.RegisterAsync(request, tenant.Subdomain);
                 return Ok(response);
@@ -57,49 +61,14 @@ namespace TourismPlatform.API.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
-
-        [HttpPost("validate")]
-        public async Task<ActionResult> ValidateToken()
-        {
-            try
-            {
-                var token = HttpContext.Request.Headers["token"].FirstOrDefault();
-                if (string.IsNullOrEmpty((string?)token))
-                    return Unauthorized(new { message = "Token inválido" });
-                var user = await _authService.GetUserFromTokenAsync(token);
-                if (user == null)
-                    return Unauthorized(new { message = "Usuario no encontrado" });
-
-                return Ok(new
-                {
-                    valid = true,
-                    user = new UserDto
-                    {
-                        Id = user.Id,
-                        Email = user.Email,
-                        FirstName = user.FirstName,
-                        LastName = user.LastName,
-                        Role = user.Role,
-                        TenantId = user.TenantId,
-                        TenantName = user.Tenant.Name,
-                        TenantSubdomain = user.Tenant.Subdomain
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-    }
-
-    public class ValidateTokenRequest
-    {
-        public string Token { get; set; } = string.Empty;
     }
 }

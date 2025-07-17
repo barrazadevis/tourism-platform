@@ -35,7 +35,7 @@ public class CustomerService : ICustomerService
             Address = createCustomerDto.Address,
             City = createCustomerDto.City,
             Country = createCustomerDto.Country,
-            DateOfBirth = createCustomerDto.DateOfBirth,
+            DateOfBirth = Convert.ToDateTime(createCustomerDto.DateOfBirth).ToUniversalTime(),
             PreferredLanguage = createCustomerDto.PreferredLanguage,
             Notes = createCustomerDto.Notes,
             CreatedAt = DateTime.UtcNow,

@@ -9,7 +9,7 @@ namespace TourismPlatform.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class QuotesController : ControllerBase
+    public class QuotesController : BaseController
     {
         private readonly IQuoteService _quoteService;
 
@@ -54,7 +54,7 @@ namespace TourismPlatform.API.Controllers
             try
             {
                 var tenantId = GetTenantId();
-                var createdBy = GetUserName();
+                var createdBy = GetUserId();
                 
                 var quote = await _quoteService.CreateQuoteAsync(createQuoteDto, tenantId, createdBy);
                 
@@ -158,20 +158,6 @@ namespace TourismPlatform.API.Controllers
             };
 
             return Ok(stats);
-        }
-
-        private Guid GetTenantId()
-        {
-            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
-            if (Guid.TryParse(tenantIdClaim, out Guid tenantId))
-                return tenantId;
-            
-            throw new UnauthorizedAccessException("Invalid tenant information");
-        }
-
-        private string GetUserName()
-        {
-            return User.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
         }
     }
 }

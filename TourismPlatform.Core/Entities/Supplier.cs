@@ -15,8 +15,10 @@ public class Supplier
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public Guid TenantId { get; set; }
+    public Guid CompanyId { get; set; }
 
     // Navigation properties
     public Tenant Tenant { get; set; } = null!;
+    public Company Company { get; set; } = null!;
     public List<SupplierService> Services { get; set; } = new();
 }

@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using TourismPlatform.Core.DTOs.Destination;
 
 namespace TourismPlatform.Core.DTOs.TravelPlan;
 
@@ -24,13 +25,10 @@ public class CreateTravelPlanDto
     [Range(0.01, double.MaxValue)]
     public decimal BasePrice { get; set; }
 
-    [Required]
-    [MaxLength(100)]
-    public string PlanType { get; set; } = string.Empty;
-
-    public string Inclusions { get; set; } = string.Empty;
-    public string Exclusions { get; set; } = string.Empty;
+    public string[] Inclusions { get; set; } = Array.Empty<string>();
+    public string[] Exclusions { get; set; } = Array.Empty<string>();
 
     public List<CreatePlanServiceDto> Services { get; set; } = new();
+    public DestinationDto? Destination { get; set; }
     
 }

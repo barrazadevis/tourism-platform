@@ -8,7 +8,7 @@ namespace TourismPlatform.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class PaymentsController : ControllerBase
+    public class PaymentsController : BaseController
     {
         private readonly IPaymentService _paymentService;
 
@@ -107,15 +107,6 @@ namespace TourismPlatform.API.Controllers
             var tenantId = GetTenantId();
             var paymentNumber = await _paymentService.GeneratePaymentNumberAsync(tenantId);
             return Ok(new { paymentNumber });
-        }
-
-        private Guid GetTenantId()
-        {
-            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
-            if (Guid.TryParse(tenantIdClaim, out Guid tenantId))
-                return tenantId;
-            
-            throw new UnauthorizedAccessException("Invalid tenant information");
         }
     }
 }

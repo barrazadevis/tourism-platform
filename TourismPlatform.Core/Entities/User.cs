@@ -14,11 +14,13 @@ namespace TourismPlatform.Core.Entities
 
         // Foreign keys
         public Guid TenantId { get; set; }
+        public Guid? CompanyId { get; set; }
         public int ApplicationId { get; set; }
 
         // Navigation properties
         public Tenant Tenant { get; set; } = null!;
         public Application Application { get; set; } = null!;
+        public Company? Company { get; set; } = null!;
 
         // Computed properties
         public string FullName => $"{FirstName} {LastName}";

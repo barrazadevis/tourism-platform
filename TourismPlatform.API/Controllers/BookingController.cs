@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TourismPlatform.API.Middleware;
 using TourismPlatform.Core.DTOs.Booking;
 using TourismPlatform.Data.Interfaces;
 
@@ -8,7 +9,7 @@ namespace TourismPlatform.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class BookingsController : ControllerBase
+    public class BookingsController : BaseController
     {
         private readonly IBookingService _bookingService;
 
@@ -114,15 +115,6 @@ namespace TourismPlatform.API.Controllers
             var tenantId = GetTenantId();
             var bookingNumber = await _bookingService.GenerateBookingNumberAsync(tenantId);
             return Ok(new { bookingNumber });
-        }
-
-        private Guid GetTenantId()
-        {
-            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
-            if (Guid.TryParse(tenantIdClaim, out Guid tenantId))
-                return tenantId;
-            
-            throw new UnauthorizedAccessException("Invalid tenant information");
         }
     }
 
