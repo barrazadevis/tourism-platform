@@ -24,7 +24,7 @@ public class DocumentService : IDocumentService
             Directory.CreateDirectory(_uploadPath);
     }
 
-    public async Task<DocumentResponseDto> UploadDocumentAsync(UploadDocumentDto uploadDto, Guid tenantId, string uploadedBy)
+    public async Task<DocumentResponseDto> UploadDocumentAsync(UploadDocumentDto uploadDto, string uploadedBy)
     {
         // Validate file
         if (uploadDto.File.Length == 0)
@@ -61,35 +61,34 @@ public class DocumentService : IDocumentService
             BookingId = uploadDto.BookingId,
             CustomerId = uploadDto.CustomerId,
             UploadedAt = DateTime.UtcNow,
-            UploadedBy = uploadedBy,
-            TenantId = tenantId
+            UploadedBy = uploadedBy
         };
 
         _context.Documents.Add(document);
         await _context.SaveChangesAsync();
 
-        return await GetDocumentByIdAsync(document.Id, tenantId) 
+        return await GetDocumentByIdAsync(document.Id) 
             ?? throw new InvalidOperationException("Failed to retrieve uploaded document");
     }
 
-    public async Task<DocumentResponseDto?> GetDocumentByIdAsync(Guid id, Guid tenantId)
+    public async Task<DocumentResponseDto?> GetDocumentByIdAsync(Guid id)
     {
         var document = await _context.Documents
             .Include(d => d.Booking)
             .Include(d => d.Customer)
-            .FirstOrDefaultAsync(d => d.Id == id && d.TenantId == tenantId);
+            .FirstOrDefaultAsync(d => d.Id == id);
 
         if (document == null) return null;
 
         return MapToResponseDto(document);
     }
 
-    public async Task<List<DocumentResponseDto>> GetDocumentsAsync(DocumentSearchDto searchDto, Guid tenantId)
+    public async Task<List<DocumentResponseDto>> GetDocumentsAsync(DocumentSearchDto searchDto)
     {
         var query = _context.Documents
             .Include(d => d.Booking)
             .Include(d => d.Customer)
-            .Where(d => d.TenantId == tenantId);
+            .AsQueryable();
 
         // Apply filters
         if (!string.IsNullOrEmpty(searchDto.DocumentType))
@@ -126,10 +125,10 @@ public class DocumentService : IDocumentService
         return documents.Select(MapToResponseDto).ToList();
     }
 
-    public async Task<(Stream stream, string fileName, string contentType)> DownloadDocumentAsync(Guid id, Guid tenantId)
+    public async Task<(Stream stream, string fileName, string contentType)> DownloadDocumentAsync(Guid id)
     {
         var document = await _context.Documents
-            .FirstOrDefaultAsync(d => d.Id == id && d.TenantId == tenantId);
+            .FirstOrDefaultAsync(d => d.Id == id);
 
         if (document == null)
             throw new FileNotFoundException("Document not found");
@@ -143,10 +142,10 @@ public class DocumentService : IDocumentService
         return (stream, document.FileName, contentType);
     }
 
-    public async Task<bool> DeleteDocumentAsync(Guid id, Guid tenantId)
+    public async Task<bool> DeleteDocumentAsync(Guid id)
     {
         var document = await _context.Documents
-            .FirstOrDefaultAsync(d => d.Id == id && d.TenantId == tenantId);
+            .FirstOrDefaultAsync(d => d.Id == id);
 
         if (document == null) return false;
 
@@ -163,10 +162,9 @@ public class DocumentService : IDocumentService
         return true;
     }
 
-    public async Task<List<string>> GetDocumentTypesAsync(Guid tenantId)
+    public async Task<List<string>> GetDocumentTypesAsync()
     {
         return await _context.Documents
-            .Where(d => d.TenantId == tenantId)
             .Select(d => d.DocumentType)
             .Distinct()
             .OrderBy(t => t)

@@ -15,15 +15,15 @@ public class QuoteService : IQuoteService
         _context = context;
     }
 
-    public async Task<QuoteResponseDto> CreateQuoteAsync(CreateQuoteDto createQuoteDto, Guid tenantId, string createdBy)
+    public async Task<QuoteResponseDto> CreateQuoteAsync(CreateQuoteDto createQuoteDto, string createdBy)
     {
         var customer = await _context.Customers
-            .FirstOrDefaultAsync(c => c.Id == createQuoteDto.CustomerId && c.TenantId == tenantId);
-        
+            .FirstOrDefaultAsync(c => c.Id == createQuoteDto.CustomerId);
+
         if (customer == null)
             throw new ArgumentException("Customer not found");
 
-        var quoteNumber = await GenerateQuoteNumberAsync(tenantId);
+        var quoteNumber = await GenerateQuoteNumberAsync();
         DateTimeUtils.EnsureUtcDateTimes(createQuoteDto);
         var quote = new Quote
         {
@@ -42,8 +42,7 @@ public class QuoteService : IQuoteService
             ValidUntil = DateTime.UtcNow.AddDays(createQuoteDto.ValidityDays),
             Notes = createQuoteDto.Notes,
             CreatedBy = createdBy,
-            CreatedAt = DateTime.UtcNow,
-            TenantId = tenantId
+            CreatedAt = DateTime.UtcNow
         };
 
         // Add items
@@ -86,29 +85,28 @@ public class QuoteService : IQuoteService
         _context.Quotes.Add(quote);
         await _context.SaveChangesAsync();
 
-        return await GetQuoteByIdAsync(quote.Id, tenantId) ?? throw new InvalidOperationException("Failed to retrieve created quote");
+        return await GetQuoteByIdAsync(quote.Id) ?? throw new InvalidOperationException("Failed to retrieve created quote");
     }
 
-    public async Task<QuoteResponseDto?> GetQuoteByIdAsync(Guid id, Guid tenantId)
+    public async Task<QuoteResponseDto?> GetQuoteByIdAsync(Guid id)
     {
         var quote = await _context.Quotes
             .Include(q => q.Customer)
             .Include(q => q.TravelPlan)
             .Include(q => q.Items)
             .Include(q => q.Hotels)
-            .FirstOrDefaultAsync(q => q.Id == id && q.TenantId == tenantId);
+            .FirstOrDefaultAsync(q => q.Id == id);
 
         if (quote == null) return null;
 
         return MapToResponseDto(quote);
     }
 
-    public async Task<List<QuoteResponseDto>> GetQuotesByTenantAsync(Guid tenantId, int page = 1, int pageSize = 10)
+    public async Task<List<QuoteResponseDto>> GetQuotesByCompanyAsync(int page = 1, int pageSize = 10)
     {
         var quotes = await _context.Quotes
             .Include(q => q.Customer)
             .Include(q => q.TravelPlan)
-            .Where(q => q.TenantId == tenantId)
             .OrderByDescending(q => q.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -117,24 +115,24 @@ public class QuoteService : IQuoteService
         return quotes.Select(MapToResponseDto).ToList();
     }
 
-    public async Task<List<QuoteResponseDto>> GetQuotesByCustomerAsync(Guid customerId, Guid tenantId)
+    public async Task<List<QuoteResponseDto>> GetQuotesByCustomerAsync(Guid customerId)
     {
         var quotes = await _context.Quotes
             .Include(q => q.Customer)
             .Include(q => q.TravelPlan)
-            .Where(q => q.CustomerId == customerId && q.TenantId == tenantId)
+            .Where(q => q.CustomerId == customerId)
             .OrderByDescending(q => q.CreatedAt)
             .ToListAsync();
 
         return quotes.Select(MapToResponseDto).ToList();
     }
 
-    public async Task<QuoteResponseDto?> UpdateQuoteAsync(Guid id, CreateQuoteDto updateQuoteDto, Guid tenantId)
+    public async Task<QuoteResponseDto?> UpdateQuoteAsync(Guid id, CreateQuoteDto updateQuoteDto)
     {
         var quote = await _context.Quotes
             .Include(q => q.Items)
             .Include(q => q.Hotels)
-            .FirstOrDefaultAsync(q => q.Id == id && q.TenantId == tenantId);
+            .FirstOrDefaultAsync(q => q.Id == id);
 
         if (quote == null) return null;
 
@@ -194,13 +192,13 @@ public class QuoteService : IQuoteService
 
         await _context.SaveChangesAsync();
 
-        return await GetQuoteByIdAsync(quote.Id, tenantId);
+        return await GetQuoteByIdAsync(quote.Id);
     }
 
-    public async Task<QuoteResponseDto?> UpdateQuoteStatusAsync(Guid id, UpdateQuoteStatusDto statusDto, Guid tenantId)
+    public async Task<QuoteResponseDto?> UpdateQuoteStatusAsync(Guid id, UpdateQuoteStatusDto statusDto)
     {
         var quote = await _context.Quotes
-            .FirstOrDefaultAsync(q => q.Id == id && q.TenantId == tenantId);
+            .FirstOrDefaultAsync(q => q.Id == id);
 
         if (quote == null) return null;
 
@@ -210,13 +208,13 @@ public class QuoteService : IQuoteService
 
         await _context.SaveChangesAsync();
 
-        return await GetQuoteByIdAsync(quote.Id, tenantId);
+        return await GetQuoteByIdAsync(quote.Id);
     }
 
-    public async Task<bool> DeleteQuoteAsync(Guid id, Guid tenantId)
+    public async Task<bool> DeleteQuoteAsync(Guid id)
     {
         var quote = await _context.Quotes
-            .FirstOrDefaultAsync(q => q.Id == id && q.TenantId == tenantId);
+            .FirstOrDefaultAsync(q => q.Id == id);
 
         if (quote == null) return false;
 
@@ -226,13 +224,13 @@ public class QuoteService : IQuoteService
         return true;
     }
 
-    public async Task<string> GenerateQuoteNumberAsync(Guid tenantId)
+    public async Task<string> GenerateQuoteNumberAsync()
     {
         var date = DateTime.UtcNow;
         var prefix = $"QT-{date:yyyyMM}";
         
         var lastQuote = await _context.Quotes
-            .Where(q => q.TenantId == tenantId && q.QuoteNumber.StartsWith(prefix))
+            .Where(q => q.QuoteNumber.StartsWith(prefix))
             .OrderByDescending(q => q.QuoteNumber)
             .FirstOrDefaultAsync();
 

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TourismPlatform.Data;
@@ -11,9 +12,11 @@ using TourismPlatform.Data;
 namespace TourismPlatform.API.Migrations
 {
     [DbContext(typeof(TourismDbContext))]
-    partial class TourismDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250719214759_Delete_TenantEntity")]
+    partial class Delete_TenantEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

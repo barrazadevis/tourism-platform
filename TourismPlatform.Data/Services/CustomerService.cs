@@ -16,10 +16,10 @@ public class CustomerService : ICustomerService
         _context = context;
     }
 
-    public async Task<CustomerResponseDto> CreateCustomerAsync(CreateCustomerDto createCustomerDto, Guid tenantId)
+    public async Task<CustomerResponseDto> CreateCustomerAsync(CreateCustomerDto createCustomerDto)
     {
         // Check if customer already exists
-        if (await ExistsAsync(createCustomerDto.Email, createCustomerDto.DocumentNumber, tenantId))
+        if (await ExistsAsync(createCustomerDto.Email, createCustomerDto.DocumentNumber))
         {
             throw new ArgumentException("Customer with this email or document number already exists");
         }
@@ -38,35 +38,34 @@ public class CustomerService : ICustomerService
             DateOfBirth = Convert.ToDateTime(createCustomerDto.DateOfBirth).ToUniversalTime(),
             PreferredLanguage = createCustomerDto.PreferredLanguage,
             Notes = createCustomerDto.Notes,
-            CreatedAt = DateTime.UtcNow,
-            TenantId = tenantId
+            CreatedAt = DateTime.UtcNow
         };
 
         _context.Customers.Add(customer);
         await _context.SaveChangesAsync();
 
-        return await GetCustomerByIdAsync(customer.Id, tenantId) 
+        return await GetCustomerByIdAsync(customer.Id) 
             ?? throw new InvalidOperationException("Failed to retrieve created customer");
     }
 
-    public async Task<CustomerResponseDto?> GetCustomerByIdAsync(Guid id, Guid tenantId)
+    public async Task<CustomerResponseDto?> GetCustomerByIdAsync(Guid id)
     {
         var customer = await _context.Customers
             .Include(c => c.Quotes)
             .Include(c => c.Bookings)
-            .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId);
+            .FirstOrDefaultAsync(c => c.Id == id);
 
         if (customer == null) return null;
 
         return MapToResponseDto(customer);
     }
 
-    public async Task<List<CustomerResponseDto>> GetCustomersAsync(CustomerSearchDto searchDto, Guid tenantId)
+    public async Task<List<CustomerResponseDto>> GetCustomersAsync(CustomerSearchDto searchDto)
     {
         var query = _context.Customers
             .Include(c => c.Quotes)
             .Include(c => c.Bookings)
-            .Where(c => c.TenantId == tenantId);
+            .AsQueryable();
 
         // Apply search filters
         if (!string.IsNullOrEmpty(searchDto.SearchTerm))
@@ -104,39 +103,39 @@ public class CustomerService : ICustomerService
         return customers.Select(MapToResponseDto).ToList();
     }
 
-    public async Task<CustomerResponseDto?> GetCustomerByEmailAsync(string email, Guid tenantId)
+    public async Task<CustomerResponseDto?> GetCustomerByEmailAsync(string email)
     {
         var customer = await _context.Customers
             .Include(c => c.Quotes)
             .Include(c => c.Bookings)
-            .FirstOrDefaultAsync(c => c.Email.ToLower() == email.ToLower() && c.TenantId == tenantId);
+            .FirstOrDefaultAsync(c => c.Email.ToLower() == email.ToLower());
 
         if (customer == null) return null;
 
         return MapToResponseDto(customer);
     }
 
-    public async Task<CustomerResponseDto?> GetCustomerByDocumentAsync(string documentNumber, Guid tenantId)
+    public async Task<CustomerResponseDto?> GetCustomerByDocumentAsync(string documentNumber)
     {
         var customer = await _context.Customers
             .Include(c => c.Quotes)
             .Include(c => c.Bookings)
-            .FirstOrDefaultAsync(c => c.DocumentNumber == documentNumber && c.TenantId == tenantId);
+            .FirstOrDefaultAsync(c => c.DocumentNumber == documentNumber);
 
         if (customer == null) return null;
 
         return MapToResponseDto(customer);
     }
 
-    public async Task<CustomerResponseDto?> UpdateCustomerAsync(Guid id, UpdateCustomerDto updateCustomerDto, Guid tenantId)
+    public async Task<CustomerResponseDto?> UpdateCustomerAsync(Guid id, UpdateCustomerDto updateCustomerDto)
     {
         var customer = await _context.Customers
-            .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId);
+            .FirstOrDefaultAsync(c => c.Id == id);
 
         if (customer == null) return null;
 
         // Check if email or document exists (excluding current customer)
-        if (await ExistsAsync(updateCustomerDto.Email, updateCustomerDto.DocumentNumber, tenantId, id))
+        if (await ExistsAsync(updateCustomerDto.Email, updateCustomerDto.DocumentNumber, id))
         {
             throw new ArgumentException("Customer with this email or document number already exists");
         }
@@ -151,22 +150,22 @@ public class CustomerService : ICustomerService
         customer.Address = updateCustomerDto.Address;
         customer.City = updateCustomerDto.City;
         customer.Country = updateCustomerDto.Country;
-        customer.DateOfBirth = updateCustomerDto.DateOfBirth;
+        customer.DateOfBirth = Convert.ToDateTime(updateCustomerDto.DateOfBirth).ToUniversalTime();
         customer.PreferredLanguage = updateCustomerDto.PreferredLanguage;
         customer.Notes = updateCustomerDto.Notes;
         customer.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
 
-        return await GetCustomerByIdAsync(customer.Id, tenantId);
+        return await GetCustomerByIdAsync(customer.Id);
     }
 
-    public async Task<bool> DeleteCustomerAsync(Guid id, Guid tenantId)
+    public async Task<bool> DeleteCustomerAsync(Guid id)
     {
         var customer = await _context.Customers
             .Include(c => c.Quotes)
             .Include(c => c.Bookings)
-            .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId);
+            .FirstOrDefaultAsync(c => c.Id == id);
 
         if (customer == null) return false;
 
@@ -182,9 +181,9 @@ public class CustomerService : ICustomerService
         return true;
     }
 
-    public async Task<bool> ExistsAsync(string email, string documentNumber, Guid tenantId, Guid? excludeId = null)
+    public async Task<bool> ExistsAsync(string email, string documentNumber, Guid? excludeId = null)
     {
-        var query = _context.Customers.Where(c => c.TenantId == tenantId);
+        var query = _context.Customers.AsQueryable();
 
         if (excludeId.HasValue)
         {

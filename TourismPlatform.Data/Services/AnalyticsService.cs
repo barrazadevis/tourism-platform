@@ -16,35 +16,35 @@ public class AnalyticsService : IAnalyticsService
         _context = context;
     }
 
-    public async Task<DashboardStatsDto> GetDashboardStatsAsync(Guid tenantId)
+    public async Task<DashboardStatsDto> GetDashboardStatsAsync()
     {
         var now = DateTime.UtcNow;
         var thisMonth = new DateTime(now.Year, now.Month, 1);
         DateTimeUtils.EnsureUtcDateTimes(thisMonth);
 
-        var totalCustomers = await _context.Customers.CountAsync(c => c.TenantId == tenantId);
-        var totalQuotes = await _context.Quotes.CountAsync(q => q.TenantId == tenantId);
-        var totalBookings = await _context.Bookings.CountAsync(b => b.TenantId == tenantId);
-        
+        var totalCustomers = await _context.Customers.CountAsync();
+        var totalQuotes = await _context.Quotes.CountAsync();
+        var totalBookings = await _context.Bookings.CountAsync();
+
         var totalRevenue = await _context.Bookings
-            .Where(b => b.TenantId == tenantId && b.Status == BookingStatus.Completed)
+            .Where(b => b.Status == BookingStatus.Completed)
             .SumAsync(b => b.TotalPaid);
 
         var pendingPayments = await _context.Bookings
-            .Where(b => b.TenantId == tenantId && b.PaymentStatus != PaymentStatus.Paid)
+            .Where(b => b.PaymentStatus != PaymentStatus.Paid)
             .SumAsync(b => b.PendingAmount);
 
         var newCustomersThisMonth = await _context.Customers
-            .CountAsync(c => c.TenantId == tenantId && c.CreatedAt.ToUniversalTime() >= thisMonth.ToUniversalTime());
+            .CountAsync(c => c.CreatedAt.ToUniversalTime() >= thisMonth.ToUniversalTime());
 
         var quotesThisMonth = await _context.Quotes
-            .CountAsync(q => q.TenantId == tenantId && q.CreatedAt.ToUniversalTime() >= thisMonth.ToUniversalTime());
+            .CountAsync(q => q.CreatedAt.ToUniversalTime() >= thisMonth.ToUniversalTime());
 
         var bookingsThisMonth = await _context.Bookings
-            .CountAsync(b => b.TenantId == tenantId && b.CreatedAt.ToUniversalTime() >= thisMonth.ToUniversalTime());
+            .CountAsync(b => b.CreatedAt.ToUniversalTime() >= thisMonth.ToUniversalTime());
 
         var revenueThisMonth = await _context.Bookings
-            .Where(b => b.TenantId == tenantId && b.CreatedAt.ToUniversalTime() >= thisMonth.ToUniversalTime() && b.Status == BookingStatus.Completed)
+            .Where(b => b.CreatedAt.ToUniversalTime() >= thisMonth.ToUniversalTime() && b.Status == BookingStatus.Completed)
             .SumAsync(b => b.TotalPaid);
 
         return new DashboardStatsDto
@@ -61,12 +61,11 @@ public class AnalyticsService : IAnalyticsService
         };
     }
 
-    public async Task<List<RevenueReportDto>> GetRevenueReportAsync(Guid tenantId, DateTime fromDate, DateTime toDate)
+    public async Task<List<RevenueReportDto>> GetRevenueReportAsync(DateTime fromDate, DateTime toDate)
     {
         var payments = await _context.Payments
             .Include(p => p.Booking)
-            .Where(p => p.TenantId == tenantId && 
-                        p.PaymentDate >= fromDate.ToUniversalTime() && 
+            .Where(p => p.PaymentDate >= fromDate.ToUniversalTime() && 
                         p.PaymentDate <= toDate.ToUniversalTime() &&
                         p.PaymentStatus == PaymentStatus.Paid)
             .GroupBy(p => p.PaymentDate.Date)
@@ -86,15 +85,13 @@ public class AnalyticsService : IAnalyticsService
             var yearStart = new DateTime(report.Date.Year, 1, 1);
 
             report.MonthToDateRevenue = await _context.Payments
-                .Where(p => p.TenantId == tenantId && 
-                            p.PaymentDate >= monthStart && 
+                .Where(p => p.PaymentDate >= monthStart && 
                             p.PaymentDate <= report.Date &&
                             p.PaymentStatus == PaymentStatus.Paid)
                 .SumAsync(p => p.Amount);
 
             report.YearToDateRevenue = await _context.Payments
-                .Where(p => p.TenantId == tenantId && 
-                            p.PaymentDate >= yearStart && 
+                .Where(p => p.PaymentDate >= yearStart && 
                             p.PaymentDate <= report.Date &&
                             p.PaymentStatus == PaymentStatus.Paid)
                 .SumAsync(p => p.Amount);
@@ -103,10 +100,9 @@ public class AnalyticsService : IAnalyticsService
         return payments;
     }
 
-    public async Task<List<TopCustomersDto>> GetTopCustomersAsync(Guid tenantId, int limit = 10)
+    public async Task<List<TopCustomersDto>> GetTopCustomersAsync(int limit = 10)
     {
         return await _context.Customers
-            .Where(c => c.TenantId == tenantId)
             .Include(c => c.Bookings)
             .Select(c => new TopCustomersDto
             {
@@ -123,12 +119,12 @@ public class AnalyticsService : IAnalyticsService
             .ToListAsync();
     }
 
-    public async Task<List<PopularDestinationsDto>> GetPopularDestinationsAsync(Guid tenantId, int limit = 10)
+    public async Task<List<PopularDestinationsDto>> GetPopularDestinationsAsync(int limit = 10)
     {
         return await _context.Bookings
             .Include(b => b.Quote)
                 .ThenInclude(q => q.TravelPlan)
-            .Where(b => b.TenantId == tenantId && b.Quote.TravelPlan != null)
+            .Where(b => b.Quote.TravelPlan != null)
             .GroupBy(b => b.Quote.TravelPlan!.Destination)
             .Select(g => new PopularDestinationsDto
             {
@@ -144,10 +140,9 @@ public class AnalyticsService : IAnalyticsService
             .ToListAsync();
     }
 
-    public async Task<List<MonthlyMetricsDto>> GetMonthlyMetricsAsync(Guid tenantId, int months = 12)
+    public async Task<List<MonthlyMetricsDto>> GetMonthlyMetricsAsync(int months = 12)
     {
         return await _context.BookingMetrics
-            .Where(bm => bm.TenantId == tenantId)
             .OrderByDescending(bm => bm.ReportDate)
             .Take(months)
             .Select(bm => new MonthlyMetricsDto
@@ -164,41 +159,36 @@ public class AnalyticsService : IAnalyticsService
             .ToListAsync();
     }
 
-    public async Task GenerateMonthlyMetricsAsync(Guid tenantId, DateTime? month = null)
+    public async Task GenerateMonthlyMetricsAsync(DateTime? month = null)
     {
         var targetMonth = month ?? DateTime.UtcNow.AddMonths(-1);
         var monthStart = new DateTime(targetMonth.Year, targetMonth.Month, 1);
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
         var totalBookings = await _context.Bookings
-            .CountAsync(b => b.TenantId == tenantId && 
-                            b.BookingDate >= monthStart && 
-                            b.BookingDate <= monthEnd);
+            .CountAsync(b => b.BookingDate >= monthStart && 
+                             b.BookingDate <= monthEnd);
 
         var totalRevenue = await _context.Bookings
-            .Where(b => b.TenantId == tenantId && 
-                        b.BookingDate >= monthStart && 
+            .Where(b => b.BookingDate >= monthStart && 
                         b.BookingDate <= monthEnd &&
                         b.Status == BookingStatus.Completed)
             .SumAsync(b => b.TotalPaid);
 
         var newCustomers = await _context.Customers
-            .CountAsync(c => c.TenantId == tenantId &&
-                            c.CreatedAt >= monthStart &&
-                            c.CreatedAt <= monthEnd);
+            .CountAsync(c => c.CreatedAt >= monthStart &&
+                             c.CreatedAt <= monthEnd);
 
         var cancelledBookings = await _context.Bookings
-            .CountAsync(b => b.TenantId == tenantId &&
-                            b.BookingDate >= monthStart &&
-                            b.BookingDate <= monthEnd &&
-                            b.Status == BookingStatus.Cancelled);
+            .CountAsync(b => b.BookingDate >= monthStart &&
+                             b.BookingDate <= monthEnd &&
+                             b.Status == BookingStatus.Cancelled);
 
         var averageBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
 
         var existingMetric = await _context.BookingMetrics
-            .FirstOrDefaultAsync(bm => bm.TenantId == tenantId && 
-                                        bm.ReportDate.Year == targetMonth.Year &&
-                                        bm.ReportDate.Month == targetMonth.Month);
+            .FirstOrDefaultAsync(bm => bm.ReportDate.Year == targetMonth.Year &&
+                                       bm.ReportDate.Month == targetMonth.Month);
 
         if (existingMetric != null)
         {
@@ -213,7 +203,6 @@ public class AnalyticsService : IAnalyticsService
             var newMetric = new BookingMetric
             {
                 Id = Guid.NewGuid(),
-                TenantId = tenantId,
                 ReportDate = monthStart,
                 TotalBookings = totalBookings,
                 TotalRevenue = totalRevenue,

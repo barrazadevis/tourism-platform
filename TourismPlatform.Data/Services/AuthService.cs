@@ -20,18 +20,11 @@ namespace TourismPlatform.Data.Services
             _configuration = configuration;
         }
 
-        public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request, string tenantSubdomain)
+        public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
         {
-            var tenant = await _context.Tenants
-                .FirstOrDefaultAsync(t => t.Subdomain == tenantSubdomain && t.IsActive);
-
-            if (tenant == null)
-                throw new UnauthorizedAccessException("Tenant no encontrado");
-
             var user = await _context.Users
-                .Include(u => u.Tenant)
+                .Include(u => u.Company)
                 .FirstOrDefaultAsync(u => u.Email == request.Email && 
-                                       u.TenantId == tenant.Id && 
                                        u.IsActive);
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
@@ -53,23 +46,16 @@ namespace TourismPlatform.Data.Services
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Role = user.Role,
-                    TenantId = user.TenantId,
-                    TenantName = user.Tenant.Name,
-                    TenantSubdomain = user.Tenant.Subdomain
+                    CompanyId = user.Company?.Id ?? Guid.Empty,
+                    CompanyName = user.Company?.Name ?? string.Empty,
                 }
             };
         }
 
-        public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, string tenantSubdomain)
+        public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
         {
-            var tenant = await _context.Tenants
-                .FirstOrDefaultAsync(t => t.Subdomain == tenantSubdomain && t.IsActive);
-
-            if (tenant == null)
-                throw new ArgumentException("Tenant no encontrado");
-
             var existingUser = await _context.Users
-                .AnyAsync(u => u.Email == request.Email && u.TenantId == tenant.Id);
+                .AnyAsync(u => u.Email == request.Email);
 
             if (existingUser)
                 throw new ArgumentException("El usuario ya existe");
@@ -83,17 +69,15 @@ namespace TourismPlatform.Data.Services
                 FirstName = request.FirstName,
                 LastName = request.LastName,
                 Role = "User",
-                TenantId = tenant.Id,
-                ApplicationId = tenant.ApplicationId,
                 CreatedAt = DateTime.UtcNow
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            // Load tenant for response
+            // Load company for response
             await _context.Entry(user)
-                .Reference(u => u.Tenant)
+                .Reference(u => u.Company)
                 .LoadAsync();
 
             var token = GenerateJwtToken(user);
@@ -108,9 +92,8 @@ namespace TourismPlatform.Data.Services
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Role = user.Role,
-                    TenantId = user.TenantId,
-                    TenantName = user.Tenant.Name,
-                    TenantSubdomain = user.Tenant.Subdomain
+                    CompanyId = user.CompanyId ?? Guid.Empty,
+                    CompanyName = user.Company?.Name ?? string.Empty,
                 }
             };
         }
@@ -125,7 +108,7 @@ namespace TourismPlatform.Data.Services
                 if (int.TryParse(userIdClaim, out int userId))
                 {
                     return await _context.Users
-                        .Include(u => u.Tenant)
+                        .Include(u => u.Company)
                         .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
                 }
                 
@@ -173,8 +156,8 @@ namespace TourismPlatform.Data.Services
                 new Claim("name", user.FullName),
                 new Claim("email", user.Email),
                 new Claim("role", user.Role),
-                new Claim("tenant_id", user.TenantId.ToString()),
-                new Claim("tenant_subdomain", user.Tenant.Subdomain)
+                new Claim("company_id", user.Company?.Id.ToString() ?? Guid.Empty.ToString()),
+                new Claim("company_name", user.Company?.Name ?? string.Empty)
             };
 
             var tokenDescriptor = new SecurityTokenDescriptor

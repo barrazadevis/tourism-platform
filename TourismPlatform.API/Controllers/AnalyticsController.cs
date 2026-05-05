@@ -1,6 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TourismPlatform.API.Middleware;
 using TourismPlatform.Core.DTOs.Analytic;
 using TourismPlatform.Data.Interfaces;
 
@@ -21,8 +20,7 @@ namespace TourismPlatform.API.Controllers
         [HttpGet("dashboard")]
         public async Task<ActionResult<DashboardStatsDto>> GetDashboardStats()
         {
-            var tenantId = GetTenantId();
-            var stats = await _analyticsService.GetDashboardStatsAsync(tenantId);
+            var stats = await _analyticsService.GetDashboardStatsAsync();
             return Ok(stats);
         }
 
@@ -31,32 +29,28 @@ namespace TourismPlatform.API.Controllers
             [FromQuery] DateTime fromDate,
             [FromQuery] DateTime toDate)
         {
-            var tenantId = GetTenantId();
-            var report = await _analyticsService.GetRevenueReportAsync(tenantId, fromDate, toDate);
+            var report = await _analyticsService.GetRevenueReportAsync(fromDate, toDate);
             return Ok(report);
         }
 
         [HttpGet("top-customers")]
         public async Task<ActionResult<List<TopCustomersDto>>> GetTopCustomers([FromQuery] int limit = 10)
         {
-            var tenantId = GetTenantId();
-            var customers = await _analyticsService.GetTopCustomersAsync(tenantId, limit);
+            var customers = await _analyticsService.GetTopCustomersAsync(limit);
             return Ok(customers);
         }
 
         [HttpGet("popular-destinations")]
         public async Task<ActionResult<List<PopularDestinationsDto>>> GetPopularDestinations([FromQuery] int limit = 10)
         {
-            var tenantId = GetTenantId();
-            var destinations = await _analyticsService.GetPopularDestinationsAsync(tenantId, limit);
+            var destinations = await _analyticsService.GetPopularDestinationsAsync(limit);
             return Ok(destinations);
         }
 
         [HttpGet("monthly-metrics")]
         public async Task<ActionResult<List<MonthlyMetricsDto>>> GetMonthlyMetrics([FromQuery] int months = 12)
         {
-            var tenantId = GetTenantId();
-            var metrics = await _analyticsService.GetMonthlyMetricsAsync(tenantId, months);
+            var metrics = await _analyticsService.GetMonthlyMetricsAsync(months);
             return Ok(metrics);
         }
 
@@ -65,8 +59,7 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                await _analyticsService.GenerateMonthlyMetricsAsync(tenantId, month);
+                await _analyticsService.GenerateMonthlyMetricsAsync(month);
                 return NoContent();
             }
             catch (Exception ex)

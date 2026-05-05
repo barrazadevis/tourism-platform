@@ -5,10 +5,10 @@ namespace TourismPlatform.Data.Interfaces;
 
 public interface IAnalyticsService
 {
-    Task<DashboardStatsDto> GetDashboardStatsAsync(Guid tenantId);
-    Task<List<RevenueReportDto>> GetRevenueReportAsync(Guid tenantId, DateTime fromDate, DateTime toDate);
-    Task<List<TopCustomersDto>> GetTopCustomersAsync(Guid tenantId, int limit = 10);
-    Task<List<PopularDestinationsDto>> GetPopularDestinationsAsync(Guid tenantId, int limit = 10);
-    Task<List<MonthlyMetricsDto>> GetMonthlyMetricsAsync(Guid tenantId, int months = 12);
-    Task GenerateMonthlyMetricsAsync(Guid tenantId, DateTime? month = null);
+    Task<DashboardStatsDto> GetDashboardStatsAsync();
+    Task<List<RevenueReportDto>> GetRevenueReportAsync(DateTime fromDate, DateTime toDate);
+    Task<List<TopCustomersDto>> GetTopCustomersAsync(int limit = 10);
+    Task<List<PopularDestinationsDto>> GetPopularDestinationsAsync(int limit = 10);
+    Task<List<MonthlyMetricsDto>> GetMonthlyMetricsAsync(int months = 12);
+    Task GenerateMonthlyMetricsAsync(DateTime? month = null);
 }

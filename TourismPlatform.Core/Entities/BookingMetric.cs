@@ -6,7 +6,6 @@ namespace TourismPlatform.Core.Entities;
 public class BookingMetric
 {
     public Guid Id { get; set; }
-    public Guid TenantId { get; set; }
     public Guid CompanyId { get; set; }
     public DateTime ReportDate { get; set; }
     public int TotalBookings { get; set; }
@@ -21,6 +20,5 @@ public class BookingMetric
     public string Period { get; set; } = string.Empty;
 
     // Navigation properties
-    public Tenant Tenant { get; set; } = null!;
     public Company Company { get; set; } = null!;
     }

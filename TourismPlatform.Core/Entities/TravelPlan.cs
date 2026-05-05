@@ -19,11 +19,9 @@ public class TravelPlan
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public Guid TenantId { get; set; }
     public Guid CompanyId { get; set; }
 
     // Navigation properties
-    public Tenant Tenant { get; set; } = null!;
     public Company Company { get; set; } = null!;
     public List<PlanService> Services { get; set; } = new();
     public List<Quote> Quotes { get; set; } = new();

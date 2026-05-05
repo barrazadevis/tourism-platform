@@ -1,8 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using TourismPlatform.API.Middleware;
 
 namespace TourismPlatform.API.Controllers
 {
@@ -11,13 +9,13 @@ namespace TourismPlatform.API.Controllers
     [Authorize]
     public class BaseController : ControllerBase
     {
-        protected Guid GetTenantId()
+        protected Guid GetCompanyId()
         {
-            var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
-            if (Guid.TryParse(tenantIdClaim, out Guid tenantId))
-                return tenantId;
+            var companyIdClaim = User.FindFirst("company_id")?.Value;
+            if (Guid.TryParse(companyIdClaim, out Guid companyId))
+                return companyId;
 
-            throw new UnauthorizedAccessException("Invalid tenant information");
+            throw new UnauthorizedAccessException("Invalid company information");
         }
 
         protected string GetUserId()

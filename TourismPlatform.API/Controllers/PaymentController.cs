@@ -22,17 +22,15 @@ namespace TourismPlatform.API.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
-            var tenantId = GetTenantId();
-            var payments = await _paymentService.GetPaymentsByTenantAsync(tenantId, page, pageSize);
+            var payments = await _paymentService.GetPaymentsByCompanyAsync(page, pageSize);
             return Ok(payments);
         }
 
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<PaymentResponseDto>> GetPayment(Guid id)
         {
-            var tenantId = GetTenantId();
-            var payment = await _paymentService.GetPaymentByIdAsync(id, tenantId);
-            
+            var payment = await _paymentService.GetPaymentByIdAsync(id);
+
             if (payment == null)
                 return NotFound($"Payment with ID {id} not found");
 
@@ -42,17 +40,15 @@ namespace TourismPlatform.API.Controllers
         [HttpGet("booking/{bookingId:guid}")]
         public async Task<ActionResult<List<PaymentResponseDto>>> GetPaymentsByBooking(Guid bookingId)
         {
-            var tenantId = GetTenantId();
-            var payments = await _paymentService.GetPaymentsByBookingAsync(bookingId, tenantId);
+            var payments = await _paymentService.GetPaymentsByBookingAsync(bookingId);
             return Ok(payments);
         }
 
         [HttpGet("booking/{bookingId:guid}/summary")]
         public async Task<ActionResult<PaymentSummaryDto>> GetPaymentSummary(Guid bookingId)
         {
-            var tenantId = GetTenantId();
-            var summary = await _paymentService.GetPaymentSummaryAsync(bookingId, tenantId);
-            
+            var summary = await _paymentService.GetPaymentSummaryAsync(bookingId);
+
             if (summary == null)
                 return NotFound($"Booking with ID {bookingId} not found");
 
@@ -64,9 +60,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var payment = await _paymentService.CreatePaymentAsync(createPaymentDto, tenantId);
-                
+                var payment = await _paymentService.CreatePaymentAsync(createPaymentDto);
+
                 return CreatedAtAction(
                     nameof(GetPayment), 
                     new { id = payment.Id }, 
@@ -87,9 +82,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var payment = await _paymentService.UpdatePaymentStatusAsync(id, statusDto, tenantId);
-                
+                var payment = await _paymentService.UpdatePaymentStatusAsync(id, statusDto);
+
                 if (payment == null)
                     return NotFound($"Payment with ID {id} not found");
 
@@ -104,8 +98,7 @@ namespace TourismPlatform.API.Controllers
         [HttpGet("generate-number")]
         public async Task<ActionResult<string>> GeneratePaymentNumber()
         {
-            var tenantId = GetTenantId();
-            var paymentNumber = await _paymentService.GeneratePaymentNumberAsync(tenantId);
+            var paymentNumber = await _paymentService.GeneratePaymentNumberAsync();
             return Ok(new { paymentNumber });
         }
     }

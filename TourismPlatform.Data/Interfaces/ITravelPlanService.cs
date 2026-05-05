@@ -6,12 +6,12 @@ namespace TourismPlatform.Data.Interfaces;
 
 public interface ITravelPlanService
 {
-    Task<TravelPlanResponseDto> CreateTravelPlanAsync(CreateTravelPlanDto createDto, Guid tenantId);
-    Task<TravelPlanResponseDto?> GetTravelPlanByIdAsync(Guid id, Guid tenantId);
-    Task<List<TravelPlanResponseDto>> GetTravelPlansAsync(TravelPlanSearchDto searchDto, Guid tenantId);
-    Task<TravelPlanResponseDto?> UpdateTravelPlanAsync(Guid id, UpdateTravelPlanDto updateDto, Guid tenantId);
-    Task<bool> DeleteTravelPlanAsync(Guid id, Guid tenantId);
-    Task<bool> ToggleTravelPlanStatusAsync(Guid id, Guid tenantId);
-    Task<List<string>> GetDestinationsAsync(Guid tenantId);
-    Task<List<string>> GetPlanTypesAsync(Guid tenantId);
+    Task<TravelPlanResponseDto> CreateTravelPlanAsync(CreateTravelPlanDto createDto);
+    Task<TravelPlanResponseDto?> GetTravelPlanByIdAsync(Guid id);
+    Task<List<TravelPlanResponseDto>> GetTravelPlansAsync(TravelPlanSearchDto searchDto);
+    Task<TravelPlanResponseDto?> UpdateTravelPlanAsync(Guid id, UpdateTravelPlanDto updateDto);
+    Task<bool> DeleteTravelPlanAsync(Guid id);
+    Task<bool> ToggleTravelPlanStatusAsync(Guid id);
+    Task<List<string>> GetDestinationsAsync();
+    Task<List<string>> GetPlanTypesAsync();
 }

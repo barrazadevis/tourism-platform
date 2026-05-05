@@ -1,6 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using TourismPlatform.Data.Interfaces;
 using TourismPlatform.Core.DTOs.Quote;
 
@@ -23,17 +22,15 @@ namespace TourismPlatform.API.Controllers
             [FromQuery] int page = 1, 
             [FromQuery] int pageSize = 10)
         {
-            var tenantId = GetTenantId();
-            var quotes = await _quoteService.GetQuotesByTenantAsync(tenantId, page, pageSize);
+            var quotes = await _quoteService.GetQuotesByCompanyAsync(page, pageSize);
             return Ok(quotes);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<QuoteResponseDto>> GetQuote(Guid id)
         {
-            var tenantId = GetTenantId();
-            var quote = await _quoteService.GetQuoteByIdAsync(id, tenantId);
-            
+            var quote = await _quoteService.GetQuoteByIdAsync(id);
+
             if (quote == null)
                 return NotFound($"Quote with ID {id} not found");
 
@@ -43,8 +40,7 @@ namespace TourismPlatform.API.Controllers
         [HttpGet("customer/{customerId}")]
         public async Task<ActionResult<List<QuoteResponseDto>>> GetQuotesByCustomer(Guid customerId)
         {
-            var tenantId = GetTenantId();
-            var quotes = await _quoteService.GetQuotesByCustomerAsync(customerId, tenantId);
+            var quotes = await _quoteService.GetQuotesByCustomerAsync(customerId);
             return Ok(quotes);
         }
 
@@ -53,11 +49,10 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
                 var createdBy = GetUserId();
-                
-                var quote = await _quoteService.CreateQuoteAsync(createQuoteDto, tenantId, createdBy);
-                
+
+                var quote = await _quoteService.CreateQuoteAsync(createQuoteDto, createdBy);
+
                 return CreatedAtAction(
                     nameof(GetQuote), 
                     new { id = quote.Id }, 
@@ -78,9 +73,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var quote = await _quoteService.UpdateQuoteAsync(id, updateQuoteDto, tenantId);
-                
+                var quote = await _quoteService.UpdateQuoteAsync(id, updateQuoteDto);
+
                 if (quote == null)
                     return NotFound($"Quote with ID {id} not found");
 
@@ -101,9 +95,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var quote = await _quoteService.UpdateQuoteStatusAsync(id, statusDto, tenantId);
-                
+                var quote = await _quoteService.UpdateQuoteStatusAsync(id, statusDto);
+
                 if (quote == null)
                     return NotFound($"Quote with ID {id} not found");
 
@@ -120,9 +113,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var deleted = await _quoteService.DeleteQuoteAsync(id, tenantId);
-                
+                var deleted = await _quoteService.DeleteQuoteAsync(id);
+
                 if (!deleted)
                     return NotFound($"Quote with ID {id} not found");
 
@@ -137,8 +129,7 @@ namespace TourismPlatform.API.Controllers
         [HttpGet("generate-number")]
         public async Task<ActionResult<string>> GenerateQuoteNumber()
         {
-            var tenantId = GetTenantId();
-            var quoteNumber = await _quoteService.GenerateQuoteNumberAsync(tenantId);
+            var quoteNumber = await _quoteService.GenerateQuoteNumberAsync();
             return Ok(new { quoteNumber });
         }
 
@@ -146,8 +137,8 @@ namespace TourismPlatform.API.Controllers
         public async Task<ActionResult> GetQuoteStats()
         {
             // TODO: Implement quote statistics
-            var tenantId = GetTenantId();
-            
+            var companyId = GetCompanyId();
+
             // Placeholder response
             var stats = new
             {

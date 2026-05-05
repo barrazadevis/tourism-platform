@@ -16,13 +16,13 @@ public class PaymentService : IPaymentService
         _context = context;
     }
 
-    public async Task<PaymentResponseDto> CreatePaymentAsync(CreatePaymentDto createPaymentDto, Guid tenantId)
+    public async Task<PaymentResponseDto> CreatePaymentAsync(CreatePaymentDto createPaymentDto)
     {
         var booking = await _context.Bookings
             .Include(b => b.Quote)
             .Include(b => b.Customer)
             .Include(b => b.Payments)
-            .FirstOrDefaultAsync(b => b.Id == createPaymentDto.BookingId && b.TenantId == tenantId);
+            .FirstOrDefaultAsync(b => b.Id == createPaymentDto.BookingId);
 
         if (booking == null)
             throw new ArgumentException("Booking not found");
@@ -36,7 +36,7 @@ public class PaymentService : IPaymentService
         if (createPaymentDto.Amount > remainingAmount)
             throw new ArgumentException($"Payment amount exceeds remaining balance of {remainingAmount:C}");
 
-        var paymentNumber = await GeneratePaymentNumberAsync(tenantId);
+        var paymentNumber = await GeneratePaymentNumberAsync();
 
         var payment = new Payment
         {
@@ -49,9 +49,7 @@ public class PaymentService : IPaymentService
             PaymentDate = DateTime.UtcNow,
             TransactionId = createPaymentDto.TransactionId,
             Currency = createPaymentDto.Currency,
-            Notes = createPaymentDto.Notes,
-            CreatedAt = DateTime.UtcNow,
-            TenantId = tenantId
+            CreatedAt = DateTime.UtcNow
         };
 
         _context.Payments.Add(payment);
@@ -61,40 +59,39 @@ public class PaymentService : IPaymentService
 
         await _context.SaveChangesAsync();
 
-        return await GetPaymentByIdAsync(payment.Id, tenantId) 
+        return await GetPaymentByIdAsync(payment.Id) 
             ?? throw new InvalidOperationException("Failed to retrieve created payment");
     }
 
-    public async Task<PaymentResponseDto?> GetPaymentByIdAsync(Guid id, Guid tenantId)
+    public async Task<PaymentResponseDto?> GetPaymentByIdAsync(Guid id)
     {
         var payment = await _context.Payments
             .Include(p => p.Booking)
                 .ThenInclude(b => b.Customer)
-            .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+            .FirstOrDefaultAsync(p => p.Id == id);
 
         if (payment == null) return null;
 
         return MapToResponseDto(payment);
     }
 
-    public async Task<List<PaymentResponseDto>> GetPaymentsByBookingAsync(Guid bookingId, Guid tenantId)
+    public async Task<List<PaymentResponseDto>> GetPaymentsByBookingAsync(Guid bookingId)
     {
         var payments = await _context.Payments
             .Include(p => p.Booking)
                 .ThenInclude(b => b.Customer)
-            .Where(p => p.BookingId == bookingId && p.TenantId == tenantId)
+            .Where(p => p.BookingId == bookingId)
             .OrderByDescending(p => p.PaymentDate)
             .ToListAsync();
 
         return payments.Select(MapToResponseDto).ToList();
     }
 
-    public async Task<List<PaymentResponseDto>> GetPaymentsByTenantAsync(Guid tenantId, int page = 1, int pageSize = 10)
+    public async Task<List<PaymentResponseDto>> GetPaymentsByCompanyAsync(int page = 1, int pageSize = 10)
     {
         var payments = await _context.Payments
             .Include(p => p.Booking)
                 .ThenInclude(b => b.Customer)
-            .Where(p => p.TenantId == tenantId)
             .OrderByDescending(p => p.PaymentDate)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -103,12 +100,12 @@ public class PaymentService : IPaymentService
         return payments.Select(MapToResponseDto).ToList();
     }
 
-    public async Task<PaymentResponseDto?> UpdatePaymentStatusAsync(Guid id, UpdatePaymentStatusDto statusDto, Guid tenantId)
+    public async Task<PaymentResponseDto?> UpdatePaymentStatusAsync(Guid id, UpdatePaymentStatusDto statusDto)
     {
         var payment = await _context.Payments
             .Include(p => p.Booking)
                 .ThenInclude(b => b.Quote)
-            .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+            .FirstOrDefaultAsync(p => p.Id == id);
 
         if (payment == null) return null;
 
@@ -125,19 +122,19 @@ public class PaymentService : IPaymentService
 
         await _context.SaveChangesAsync();
 
-        return await GetPaymentByIdAsync(payment.Id, tenantId);
+        return await GetPaymentByIdAsync(payment.Id);
     }
 
-    public async Task<PaymentSummaryDto?> GetPaymentSummaryAsync(Guid bookingId, Guid tenantId)
+    public async Task<PaymentSummaryDto?> GetPaymentSummaryAsync(Guid bookingId)
     {
         var booking = await _context.Bookings
             .Include(b => b.Quote)
             .Include(b => b.Payments)
-            .FirstOrDefaultAsync(b => b.Id == bookingId && b.TenantId == tenantId);
+            .FirstOrDefaultAsync(b => b.Id == bookingId);
 
         if (booking == null) return null;
 
-        var payments = await GetPaymentsByBookingAsync(bookingId, tenantId);
+        var payments = await GetPaymentsByBookingAsync(bookingId);
 
         return new PaymentSummaryDto
         {
@@ -150,13 +147,13 @@ public class PaymentService : IPaymentService
         };
     }
 
-    public async Task<string> GeneratePaymentNumberAsync(Guid tenantId)
+    public async Task<string> GeneratePaymentNumberAsync()
     {
         var date = DateTime.UtcNow;
         var prefix = $"PAY-{date:yyyyMM}";
         
         var lastPayment = await _context.Payments
-            .Where(p => p.TenantId == tenantId && p.PaymentNumber.StartsWith(prefix))
+            .Where(p => p.PaymentNumber.StartsWith(prefix))
             .OrderByDescending(p => p.PaymentNumber)
             .FirstOrDefaultAsync();
 

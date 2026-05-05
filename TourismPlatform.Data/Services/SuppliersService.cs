@@ -15,7 +15,7 @@ public class SuppliersService : ISupplierService
         _context = context;
     }
 
-    public async Task<SupplierResponseDto> CreateSupplierAsync(CreateSupplierDto createSupplierDto, Guid tenantId)
+    public async Task<SupplierResponseDto> CreateSupplierAsync(CreateSupplierDto createSupplierDto)
     {
         var supplier = new Supplier
         {
@@ -28,8 +28,7 @@ public class SuppliersService : ISupplierService
             Country = createSupplierDto.Country,
             SupplierType = createSupplierDto.SupplierType,
             IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            TenantId = tenantId
+            CreatedAt = DateTime.UtcNow
         };
 
         // Add services
@@ -51,26 +50,26 @@ public class SuppliersService : ISupplierService
         _context.Suppliers.Add(supplier);
         await _context.SaveChangesAsync();
 
-        return await GetSupplierByIdAsync(supplier.Id, tenantId) 
+        return await GetSupplierByIdAsync(supplier.Id) 
             ?? throw new InvalidOperationException("Failed to retrieve created supplier");
     }
 
-    public async Task<SupplierResponseDto?> GetSupplierByIdAsync(Guid id, Guid tenantId)
+    public async Task<SupplierResponseDto?> GetSupplierByIdAsync(Guid id)
     {
         var supplier = await _context.Suppliers
             .Include(s => s.Services)
-            .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == tenantId);
+            .FirstOrDefaultAsync(s => s.Id == id);
 
         if (supplier == null) return null;
 
         return MapToResponseDto(supplier);
     }
 
-    public async Task<List<SupplierResponseDto>> GetSuppliersAsync(SupplierSearchDto searchDto, Guid tenantId)
+    public async Task<List<SupplierResponseDto>> GetSuppliersAsync(SupplierSearchDto searchDto)
     {
         var query = _context.Suppliers
             .Include(s => s.Services)
-            .Where(s => s.TenantId == tenantId);
+            .AsQueryable();
 
         // Apply filters
         if (!string.IsNullOrEmpty(searchDto.SearchTerm))
@@ -106,11 +105,11 @@ public class SuppliersService : ISupplierService
         return suppliers.Select(MapToResponseDto).ToList();
     }
 
-    public async Task<SupplierResponseDto?> UpdateSupplierAsync(Guid id, UpdateSupplierDto updateSupplierDto, Guid tenantId)
+    public async Task<SupplierResponseDto?> UpdateSupplierAsync(Guid id, UpdateSupplierDto updateSupplierDto)
     {
         var supplier = await _context.Suppliers
             .Include(s => s.Services)
-            .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == tenantId);
+            .FirstOrDefaultAsync(s => s.Id == id);
 
         if (supplier == null) return null;
 
@@ -145,13 +144,13 @@ public class SuppliersService : ISupplierService
 
         await _context.SaveChangesAsync();
 
-        return await GetSupplierByIdAsync(supplier.Id, tenantId);
+        return await GetSupplierByIdAsync(supplier.Id);
     }
 
-    public async Task<bool> DeleteSupplierAsync(Guid id, Guid tenantId)
+    public async Task<bool> DeleteSupplierAsync(Guid id)
     {
         var supplier = await _context.Suppliers
-            .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == tenantId);
+            .FirstOrDefaultAsync(s => s.Id == id);
 
         if (supplier == null) return false;
 
@@ -161,10 +160,10 @@ public class SuppliersService : ISupplierService
         return true;
     }
 
-    public async Task<bool> ToggleSupplierStatusAsync(Guid id, Guid tenantId)
+    public async Task<bool> ToggleSupplierStatusAsync(Guid id)
     {
         var supplier = await _context.Suppliers
-            .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == tenantId);
+            .FirstOrDefaultAsync(s => s.Id == id);
 
         if (supplier == null) return false;
 
@@ -174,10 +173,9 @@ public class SuppliersService : ISupplierService
         return true;
     }
 
-    public async Task<List<string>> GetSupplierTypesAsync(Guid tenantId)
+    public async Task<List<string>> GetSupplierTypesAsync()
     {
         return await _context.Suppliers
-            .Where(s => s.TenantId == tenantId)
             .Select(s => s.SupplierType)
             .Distinct()
             .OrderBy(t => t)

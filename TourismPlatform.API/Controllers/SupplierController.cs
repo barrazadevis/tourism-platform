@@ -26,7 +26,6 @@ namespace TourismPlatform.API.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
-            var tenantId = GetTenantId();
             var searchDto = new SupplierSearchDto
             {
                 SearchTerm = searchTerm,
@@ -37,16 +36,15 @@ namespace TourismPlatform.API.Controllers
                 PageSize = pageSize
             };
 
-            var suppliers = await _supplierService.GetSuppliersAsync(searchDto, tenantId);
+            var suppliers = await _supplierService.GetSuppliersAsync(searchDto);
             return Ok(suppliers);
         }
 
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<SupplierResponseDto>> GetSupplier(Guid id)
         {
-            var tenantId = GetTenantId();
-            var supplier = await _supplierService.GetSupplierByIdAsync(id, tenantId);
-            
+            var supplier = await _supplierService.GetSupplierByIdAsync(id);
+
             if (supplier == null)
                 return NotFound($"Supplier with ID {id} not found");
 
@@ -58,9 +56,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var supplier = await _supplierService.CreateSupplierAsync(createSupplierDto, tenantId);
-                
+                var supplier = await _supplierService.CreateSupplierAsync(createSupplierDto);
+
                 return CreatedAtAction(
                     nameof(GetSupplier), 
                     new { id = supplier.Id }, 
@@ -77,9 +74,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var supplier = await _supplierService.UpdateSupplierAsync(id, updateSupplierDto, tenantId);
-                
+                var supplier = await _supplierService.UpdateSupplierAsync(id, updateSupplierDto);
+
                 if (supplier == null)
                     return NotFound($"Supplier with ID {id} not found");
 
@@ -96,9 +92,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var deleted = await _supplierService.DeleteSupplierAsync(id, tenantId);
-                
+                var deleted = await _supplierService.DeleteSupplierAsync(id);
+
                 if (!deleted)
                     return NotFound($"Supplier with ID {id} not found");
 
@@ -115,9 +110,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var updated = await _supplierService.ToggleSupplierStatusAsync(id, tenantId);
-                
+                var updated = await _supplierService.ToggleSupplierStatusAsync(id);
+
                 if (!updated)
                     return NotFound($"Supplier with ID {id} not found");
 
@@ -132,8 +126,7 @@ namespace TourismPlatform.API.Controllers
         [HttpGet("types")]
         public async Task<ActionResult<List<string>>> GetSupplierTypes()
         {
-            var tenantId = GetTenantId();
-            var types = await _supplierService.GetSupplierTypesAsync(tenantId);
+            var types = await _supplierService.GetSupplierTypesAsync();
             return Ok(types);
         }
     }

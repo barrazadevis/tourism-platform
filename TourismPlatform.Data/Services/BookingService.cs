@@ -17,11 +17,11 @@ public class BookingService : IBookingService
         _context = context;
     }
 
-    public async Task<BookingResponseDto> CreateBookingFromQuoteAsync(CreateBookingDto createBookingDto, Guid tenantId)
+    public async Task<BookingResponseDto> CreateBookingFromQuoteAsync(CreateBookingDto createBookingDto)
     {
         var quote = await _context.Quotes
             .Include(q => q.Customer)
-            .FirstOrDefaultAsync(q => q.Id == createBookingDto.QuoteId && q.TenantId == tenantId);
+            .FirstOrDefaultAsync(q => q.Id == createBookingDto.QuoteId);
 
         if (quote == null)
             throw new ArgumentException("Quote not found");
@@ -29,7 +29,7 @@ public class BookingService : IBookingService
         if (quote.Status != QuoteStatus.Approved)
             throw new ArgumentException("Only approved quotes can be converted to bookings");
 
-        var bookingNumber = await GenerateBookingNumberAsync(tenantId);
+        var bookingNumber = await GenerateBookingNumberAsync();
 
         var booking = new Booking
         {
@@ -45,8 +45,7 @@ public class BookingService : IBookingService
             BookingDate = DateTime.UtcNow,
             SpecialRequests = createBookingDto.SpecialRequests,
             PaymentStatus = PaymentStatus.Pending,
-            CreatedAt = DateTime.UtcNow,
-            TenantId = tenantId
+            CreatedAt = DateTime.UtcNow
         };
 
         // Add passengers
@@ -76,30 +75,29 @@ public class BookingService : IBookingService
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync();
 
-        return await GetBookingByIdAsync(booking.Id, tenantId) 
+        return await GetBookingByIdAsync(booking.Id) 
             ?? throw new InvalidOperationException("Failed to retrieve created booking");
     }
 
-    public async Task<BookingResponseDto?> GetBookingByIdAsync(Guid id, Guid tenantId)
+    public async Task<BookingResponseDto?> GetBookingByIdAsync(Guid id)
     {
         var booking = await _context.Bookings
             .Include(b => b.Quote)
             .Include(b => b.Customer)
             .Include(b => b.Passengers)
             .Include(b => b.Payments)
-            .FirstOrDefaultAsync(b => b.Id == id && b.TenantId == tenantId);
+            .FirstOrDefaultAsync(b => b.Id == id);
 
         if (booking == null) return null;
 
         return MapToResponseDto(booking);
     }
 
-    public async Task<List<BookingResponseDto>> GetBookingsByTenantAsync(Guid tenantId, int page = 1, int pageSize = 10)
+    public async Task<List<BookingResponseDto>> GetBookingsByTenantAsync(int page = 1, int pageSize = 10)
     {
         var bookings = await _context.Bookings
             .Include(b => b.Quote)
             .Include(b => b.Customer)
-            .Where(b => b.TenantId == tenantId)
             .OrderByDescending(b => b.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -108,22 +106,22 @@ public class BookingService : IBookingService
         return bookings.Select(MapToResponseDto).ToList();
     }
 
-    public async Task<List<BookingResponseDto>> GetBookingsByCustomerAsync(Guid customerId, Guid tenantId)
+    public async Task<List<BookingResponseDto>> GetBookingsByCustomerAsync(Guid customerId)
     {
         var bookings = await _context.Bookings
             .Include(b => b.Quote)
             .Include(b => b.Customer)
-            .Where(b => b.CustomerId == customerId && b.TenantId == tenantId)
+            .Where(b => b.CustomerId == customerId)
             .OrderByDescending(b => b.CreatedAt)
             .ToListAsync();
 
         return bookings.Select(MapToResponseDto).ToList();
     }
 
-    public async Task<BookingResponseDto?> UpdateBookingStatusAsync(Guid id, UpdateBookingStatusDto statusDto, Guid tenantId)
+    public async Task<BookingResponseDto?> UpdateBookingStatusAsync(Guid id, UpdateBookingStatusDto statusDto)
     {
         var booking = await _context.Bookings
-            .FirstOrDefaultAsync(b => b.Id == id && b.TenantId == tenantId);
+            .FirstOrDefaultAsync(b => b.Id == id);
 
         if (booking == null) return null;
 
@@ -142,13 +140,13 @@ public class BookingService : IBookingService
 
         await _context.SaveChangesAsync();
 
-        return await GetBookingByIdAsync(booking.Id, tenantId);
+        return await GetBookingByIdAsync(booking.Id);
     }
 
-    public async Task<bool> CancelBookingAsync(Guid id, string reason, Guid tenantId)
+    public async Task<bool> CancelBookingAsync(Guid id, string reason)
     {
         var booking = await _context.Bookings
-            .FirstOrDefaultAsync(b => b.Id == id && b.TenantId == tenantId);
+            .FirstOrDefaultAsync(b => b.Id == id);
 
         if (booking == null) return false;
 
@@ -160,13 +158,13 @@ public class BookingService : IBookingService
         return true;
     }
 
-    public async Task<string> GenerateBookingNumberAsync(Guid tenantId)
+    public async Task<string> GenerateBookingNumberAsync()
     {
         var date = DateTime.UtcNow;
         var prefix = $"BK-{date:yyyyMM}";
         
         var lastBooking = await _context.Bookings
-            .Where(b => b.TenantId == tenantId && b.BookingNumber.StartsWith(prefix))
+            .Where(b => b.BookingNumber.StartsWith(prefix))
             .OrderByDescending(b => b.BookingNumber)
             .FirstOrDefaultAsync();
 

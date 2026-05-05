@@ -1,18 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using TourismPlatform.Core.Entities;
+using TourismPlatform.Data.Interfaces;
 
 namespace TourismPlatform.Data
 {
     public class TourismDbContext : DbContext
     {
-        public TourismDbContext(DbContextOptions<TourismDbContext> options) : base(options) { }
+        private readonly ICurrentUserService _currentUserService;
+
+        public TourismDbContext(DbContextOptions<TourismDbContext> options, ICurrentUserService currentUserService) : base(options) 
+        { 
+            _currentUserService = currentUserService;
+        }
 
         // Auth entities
         public DbSet<Application> Applications { get; set; }
         public DbSet<User> Users { get; set; }
         
         // Tourism entities
-        public DbSet<Tenant> Tenants { get; set; }
         public DbSet<Company> Companies { get; set; }
         public DbSet<TravelPlan> TravelPlans { get; set; }
         public DbSet<Quote> Quotes { get; set; }
@@ -65,14 +70,9 @@ namespace TourismPlatform.Data
                 entity.Property(e => e.LastName).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Role).IsRequired().HasMaxLength(20);
 
-                entity.HasIndex(e => new { e.Email, e.TenantId }).IsUnique();
+                entity.HasIndex(e => new { e.Email, e.CompanyId }).IsUnique();
 
-                entity.HasOne(u => u.Tenant)
-                      .WithMany(t => t.Users)
-                      .HasForeignKey(u => u.TenantId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                  entity.HasOne(u => u.Company)
+                entity.HasOne(u => u.Company)
                       .WithMany(t => t.Users)
                       .HasForeignKey(u => u.CompanyId)
                       .OnDelete(DeleteBehavior.Cascade);
@@ -81,24 +81,9 @@ namespace TourismPlatform.Data
                       .WithMany(a => a.Users)
                       .HasForeignKey(u => u.ApplicationId)
                       .OnDelete(DeleteBehavior.Cascade);
+                      
+                entity.HasQueryFilter(e => _currentUserService.CompanyId == Guid.Empty || e.CompanyId == _currentUserService.CompanyId);
             });
-
-            // Tenant entity
-            modelBuilder.Entity<Tenant>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Subdomain).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.PlanType).IsRequired().HasMaxLength(20);
-
-                entity.HasIndex(e => e.Subdomain).IsUnique();
-
-                entity.HasOne(t => t.Application)
-                      .WithMany(a => a.Tenants)
-                      .HasForeignKey(t => t.ApplicationId)
-                      .OnDelete(DeleteBehavior.Cascade);
-            });
-            
             // Company entity
             modelBuilder.Entity<Company>(entity =>
             {
@@ -123,16 +108,12 @@ namespace TourismPlatform.Data
                   entity.Property(e => e.DocumentType).HasMaxLength(50);
                   entity.Property(e => e.DocumentNumber).HasMaxLength(50);
 
-                  entity.HasOne(c => c.Tenant)
-                        .WithMany()
-                        .HasForeignKey(c => c.TenantId)
-                        .OnDelete(DeleteBehavior.Cascade);
-
                   entity.HasOne(c => c.Company)
                         .WithMany()
                         .HasForeignKey(c => c.CompanyId)
                         .OnDelete(DeleteBehavior.Cascade);
-
+                        
+                  entity.HasQueryFilter(e => _currentUserService.CompanyId == Guid.Empty || e.CompanyId == _currentUserService.CompanyId);
             });
 
             // TravelPlan entity
@@ -144,11 +125,6 @@ namespace TourismPlatform.Data
                 entity.Property(e => e.PlanType).HasMaxLength(100);
                 entity.Property(e => e.BasePrice).HasColumnType("decimal(18,2)");
 
-                entity.HasOne(tp => tp.Tenant)
-                      .WithMany(t => t.TravelPlans)
-                      .HasForeignKey(tp => tp.TenantId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
                   entity.HasOne(e => e.Company)
                         .WithMany(c => c.TravelPlans)
                         .HasForeignKey(e => e.CompanyId)
@@ -158,6 +134,8 @@ namespace TourismPlatform.Data
                       .WithMany(d => d.TravelPlans)
                       .HasForeignKey(e => e.DestinationId)
                       .OnDelete(DeleteBehavior.Restrict);
+                      
+                  entity.HasQueryFilter(e => _currentUserService.CompanyId == Guid.Empty || e.CompanyId == _currentUserService.CompanyId);
             });
 
             // Quote entity
@@ -183,11 +161,6 @@ namespace TourismPlatform.Data
                       .HasForeignKey(q => q.TravelPlanId)
                       .OnDelete(DeleteBehavior.SetNull);
 
-                entity.HasOne(q => q.Tenant)
-                      .WithMany(t => t.Quotes)
-                      .HasForeignKey(q => q.TenantId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
                   entity.HasOne(e => e.Company)
                       .WithMany(c => c.Quotes)
                       .HasForeignKey(e => e.CompanyId)
@@ -197,6 +170,8 @@ namespace TourismPlatform.Data
                       .WithMany(d => d.Quotes)
                       .HasForeignKey(e => e.CustomDestinationId)
                       .OnDelete(DeleteBehavior.SetNull);
+                      
+                  entity.HasQueryFilter(e => _currentUserService.CompanyId == Guid.Empty || e.CompanyId == _currentUserService.CompanyId);
             });
 
             // QuoteItem configurations
@@ -247,16 +222,12 @@ namespace TourismPlatform.Data
                       .HasForeignKey(e => e.CustomerId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                  entity.HasOne(e => e.Tenant)
-                      .WithMany()
-                      .HasForeignKey(e => e.TenantId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
                   entity.HasOne(e => e.Company)
                       .WithMany()
                       .HasForeignKey(e => e.CompanyId)
                       .OnDelete(DeleteBehavior.Cascade);
-                    
+                      
+                  entity.HasQueryFilter(e => _currentUserService.CompanyId == Guid.Empty || e.CompanyId == _currentUserService.CompanyId);
             });
 
             // Passenger configurations
@@ -294,16 +265,13 @@ namespace TourismPlatform.Data
                         .WithMany(b => b.Payments)
                         .HasForeignKey(p => p.BookingId)
                         .OnDelete(DeleteBehavior.Cascade);
-
-                  entity.HasOne(p => p.Tenant)
-                        .WithMany()
-                        .HasForeignKey(p => p.TenantId)
-                        .OnDelete(DeleteBehavior.Cascade);
                   
                   entity.HasOne(p => p.Company)
                       .WithMany()
                       .HasForeignKey(p => p.CompanyId)
                       .OnDelete(DeleteBehavior.Cascade);
+                      
+                  entity.HasQueryFilter(e => _currentUserService.CompanyId == Guid.Empty || e.CompanyId == _currentUserService.CompanyId);
             });
 
             // Supplier configurations
@@ -314,15 +282,12 @@ namespace TourismPlatform.Data
                   entity.Property(e => e.ContactPhone).HasMaxLength(20);
                   entity.Property(e => e.SupplierType).HasMaxLength(100);
 
-                  entity.HasOne(s => s.Tenant)
-                        .WithMany()
-                        .HasForeignKey(s => s.TenantId)
-                        .OnDelete(DeleteBehavior.Cascade);
-
                   entity.HasOne(s => s.Company)
                       .WithMany()
                       .HasForeignKey(s => s.CompanyId)
                       .OnDelete(DeleteBehavior.Cascade);
+                      
+                  entity.HasQueryFilter(e => _currentUserService.CompanyId == Guid.Empty || e.CompanyId == _currentUserService.CompanyId);
             });
 
             // SupplierService configurations
@@ -358,15 +323,12 @@ namespace TourismPlatform.Data
                         .HasForeignKey(d => d.CustomerId)
                         .OnDelete(DeleteBehavior.SetNull);
 
-                  entity.HasOne(d => d.Tenant)
-                        .WithMany()
-                        .HasForeignKey(d => d.TenantId)
-                        .OnDelete(DeleteBehavior.Cascade);
-
                   entity.HasOne(d => d.Company)
                       .WithMany()
                       .HasForeignKey(d => d.CompanyId)
                       .OnDelete(DeleteBehavior.Cascade);
+                      
+                  entity.HasQueryFilter(e => _currentUserService.CompanyId == Guid.Empty || e.CompanyId == _currentUserService.CompanyId);
             });
 
             // BookingMetric configurations
@@ -376,15 +338,12 @@ namespace TourismPlatform.Data
                   entity.Property(e => e.AverageBookingValue).HasColumnType("decimal(18,2)");
                   entity.Property(e => e.Period).HasMaxLength(50);
 
-                  entity.HasOne(bm => bm.Tenant)
-                        .WithMany()
-                        .HasForeignKey(bm => bm.TenantId)
-                        .OnDelete(DeleteBehavior.Cascade);
-
                   entity.HasOne(bm => bm.Company)
                       .WithMany()
                       .HasForeignKey(bm => bm.CompanyId)
                       .OnDelete(DeleteBehavior.Cascade);
+                      
+                  entity.HasQueryFilter(e => _currentUserService.CompanyId == Guid.Empty || e.CompanyId == _currentUserService.CompanyId);
             });
 
             // PlanService configurations
@@ -416,6 +375,27 @@ namespace TourismPlatform.Data
             modelBuilder.Entity<Payment>()
                 .Property(e => e.PaymentStatus)
                 .HasConversion<int>();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            var companyId = _currentUserService.CompanyId;
+            if (companyId != Guid.Empty)
+            {
+                var entries = ChangeTracker.Entries()
+                    .Where(e => e.State == EntityState.Added);
+
+                foreach (var entry in entries)
+                {
+                    var property = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "CompanyId");
+                    if (property != null && (property.CurrentValue == null || (Guid)property.CurrentValue == Guid.Empty))
+                    {
+                        property.CurrentValue = companyId;
+                    }
+                }
+            }
+
+            return base.SaveChangesAsync(cancellationToken);
         }
     }
 }

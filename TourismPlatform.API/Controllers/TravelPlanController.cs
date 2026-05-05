@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TourismPlatform.Core.DTOs.TravelPlan;
 using TourismPlatform.Data.Interfaces;
@@ -30,7 +30,6 @@ namespace TourismPlatform.API.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
-            var tenantId = GetTenantId();
             var searchDto = new TravelPlanSearchDto
             {
                 SearchTerm = searchTerm,
@@ -45,16 +44,15 @@ namespace TourismPlatform.API.Controllers
                 PageSize = pageSize
             };
 
-            var travelPlans = await _travelPlanService.GetTravelPlansAsync(searchDto, tenantId);
+            var travelPlans = await _travelPlanService.GetTravelPlansAsync(searchDto);
             return Ok(travelPlans);
         }
 
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<TravelPlanResponseDto>> GetTravelPlan(Guid id)
         {
-            var tenantId = GetTenantId();
-            var travelPlan = await _travelPlanService.GetTravelPlanByIdAsync(id, tenantId);
-            
+            var travelPlan = await _travelPlanService.GetTravelPlanByIdAsync(id);
+
             if (travelPlan == null)
                 return NotFound($"Travel plan with ID {id} not found");
 
@@ -66,9 +64,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var travelPlan = await _travelPlanService.CreateTravelPlanAsync(createDto, tenantId);
-                
+                var travelPlan = await _travelPlanService.CreateTravelPlanAsync(createDto);
+
                 return CreatedAtAction(
                     nameof(GetTravelPlan), 
                     new { id = travelPlan.Id }, 
@@ -85,9 +82,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var travelPlan = await _travelPlanService.UpdateTravelPlanAsync(id, updateDto, tenantId);
-                
+                var travelPlan = await _travelPlanService.UpdateTravelPlanAsync(id, updateDto);
+
                 if (travelPlan == null)
                     return NotFound($"Travel plan with ID {id} not found");
 
@@ -104,9 +100,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var deleted = await _travelPlanService.DeleteTravelPlanAsync(id, tenantId);
-                
+                var deleted = await _travelPlanService.DeleteTravelPlanAsync(id);
+
                 if (!deleted)
                     return NotFound($"Travel plan with ID {id} not found");
 
@@ -127,9 +122,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var updated = await _travelPlanService.ToggleTravelPlanStatusAsync(id, tenantId);
-                
+                var updated = await _travelPlanService.ToggleTravelPlanStatusAsync(id);
+
                 if (!updated)
                     return NotFound($"Travel plan with ID {id} not found");
 
@@ -144,16 +138,14 @@ namespace TourismPlatform.API.Controllers
         [HttpGet("destinations")]
         public async Task<ActionResult<List<string>>> GetDestinations()
         {
-            var tenantId = GetTenantId();
-            var destinations = await _travelPlanService.GetDestinationsAsync(tenantId);
+            var destinations = await _travelPlanService.GetDestinationsAsync();
             return Ok(destinations);
         }
 
         [HttpGet("plan-types")]
         public async Task<ActionResult<List<string>>> GetPlanTypes()
         {
-            var tenantId = GetTenantId();
-            var planTypes = await _travelPlanService.GetPlanTypesAsync(tenantId);
+            var planTypes = await _travelPlanService.GetPlanTypesAsync();
             return Ok(planTypes);
         }
     }

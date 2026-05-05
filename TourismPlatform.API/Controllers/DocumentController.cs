@@ -27,7 +27,6 @@ namespace TourismPlatform.API.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
-            var tenantId = GetTenantId();
             var searchDto = new DocumentSearchDto
             {
                 DocumentType = documentType,
@@ -39,16 +38,15 @@ namespace TourismPlatform.API.Controllers
                 PageSize = pageSize
             };
 
-            var documents = await _documentService.GetDocumentsAsync(searchDto, tenantId);
+            var documents = await _documentService.GetDocumentsAsync(searchDto);
             return Ok(documents);
         }
 
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<DocumentResponseDto>> GetDocument(Guid id)
         {
-            var tenantId = GetTenantId();
-            var document = await _documentService.GetDocumentByIdAsync(id, tenantId);
-            
+            var document = await _documentService.GetDocumentByIdAsync(id);
+
             if (document == null)
                 return NotFound($"Document with ID {id} not found");
 
@@ -60,11 +58,10 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
                 var uploadedBy = GetUserId();
-                
-                var document = await _documentService.UploadDocumentAsync(uploadDto, tenantId, uploadedBy);
-                
+
+                var document = await _documentService.UploadDocumentAsync(uploadDto, uploadedBy);
+
                 return CreatedAtAction(
                     nameof(GetDocument), 
                     new { id = document.Id }, 
@@ -85,9 +82,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var (stream, fileName, contentType) = await _documentService.DownloadDocumentAsync(id, tenantId);
-                
+                var (stream, fileName, contentType) = await _documentService.DownloadDocumentAsync(id);
+
                 return File(stream, contentType, fileName);
             }
             catch (FileNotFoundException ex)
@@ -105,9 +101,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var deleted = await _documentService.DeleteDocumentAsync(id, tenantId);
-                
+                var deleted = await _documentService.DeleteDocumentAsync(id);
+
                 if (!deleted)
                     return NotFound($"Document with ID {id} not found");
 
@@ -122,8 +117,7 @@ namespace TourismPlatform.API.Controllers
         [HttpGet("types")]
         public async Task<ActionResult<List<string>>> GetDocumentTypes()
         {
-            var tenantId = GetTenantId();
-            var types = await _documentService.GetDocumentTypesAsync(tenantId);
+            var types = await _documentService.GetDocumentTypesAsync();
             return Ok(types);
         }
     }

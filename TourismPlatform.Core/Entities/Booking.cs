@@ -24,13 +24,11 @@ public class Booking
     public PaymentStatus PaymentStatus { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
-    public Guid TenantId { get; set; }
     public Guid? CompanyId { get; set; } // Nullable for multi-tenant scenarios
 
     // Navigation properties
     public Quote Quote { get; set; } = null!;
     public Customer Customer { get; set; } = null!;
-    public Tenant Tenant { get; set; } = null!;
     public Company Company { get; set; } = null!;
     public List<Passenger> Passengers { get; set; } = new();
     public List<Payment> Payments { get; set; } = new();

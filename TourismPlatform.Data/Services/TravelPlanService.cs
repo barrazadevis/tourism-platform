@@ -14,7 +14,7 @@ public class TravelPlanService : ITravelPlanService
             _context = context;
         }
 
-        public async Task<TravelPlanResponseDto> CreateTravelPlanAsync(CreateTravelPlanDto createDto, Guid tenantId)
+        public async Task<TravelPlanResponseDto> CreateTravelPlanAsync(CreateTravelPlanDto createDto)
         {
             var travelPlan = new TravelPlan
             {
@@ -27,8 +27,7 @@ public class TravelPlanService : ITravelPlanService
                 Inclusions = string.Join(", ", createDto.Inclusions),
                 Exclusions = string.Join(", ", createDto.Exclusions),
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                TenantId = tenantId
+                CreatedAt = DateTime.UtcNow
             };
 
             // Add services
@@ -49,28 +48,28 @@ public class TravelPlanService : ITravelPlanService
             _context.TravelPlans.Add(travelPlan);
             await _context.SaveChangesAsync();
 
-            return await GetTravelPlanByIdAsync(travelPlan.Id, tenantId) 
+            return await GetTravelPlanByIdAsync(travelPlan.Id) 
                 ?? throw new InvalidOperationException("Failed to retrieve created travel plan");
         }
 
-        public async Task<TravelPlanResponseDto?> GetTravelPlanByIdAsync(Guid id, Guid tenantId)
+        public async Task<TravelPlanResponseDto?> GetTravelPlanByIdAsync(Guid id)
         {
             var travelPlan = await _context.TravelPlans
                 .Include(tp => tp.Services)
                 .Include(tp => tp.Quotes)
-                .FirstOrDefaultAsync(tp => tp.Id == id && tp.TenantId == tenantId);
+                .FirstOrDefaultAsync(tp => tp.Id == id);
 
             if (travelPlan == null) return null;
 
             return MapToResponseDto(travelPlan);
         }
 
-        public async Task<List<TravelPlanResponseDto>> GetTravelPlansAsync(TravelPlanSearchDto searchDto, Guid tenantId)
+        public async Task<List<TravelPlanResponseDto>> GetTravelPlansAsync(TravelPlanSearchDto searchDto)
         {
             var query = _context.TravelPlans
                 .Include(tp => tp.Services)
                 .Include(tp => tp.Quotes)
-                .Where(tp => tp.TenantId == tenantId);
+                .AsQueryable();
 
             // Apply filters
             if (!string.IsNullOrEmpty(searchDto.SearchTerm))
@@ -127,11 +126,11 @@ public class TravelPlanService : ITravelPlanService
             return travelPlans.Select(MapToResponseDto).ToList();
         }
 
-        public async Task<TravelPlanResponseDto?> UpdateTravelPlanAsync(Guid id, UpdateTravelPlanDto updateDto, Guid tenantId)
+        public async Task<TravelPlanResponseDto?> UpdateTravelPlanAsync(Guid id, UpdateTravelPlanDto updateDto)
         {
             var travelPlan = await _context.TravelPlans
                 .Include(tp => tp.Services)
-                .FirstOrDefaultAsync(tp => tp.Id == id && tp.TenantId == tenantId);
+                .FirstOrDefaultAsync(tp => tp.Id == id);
 
             if (travelPlan == null) return null;
 
@@ -166,14 +165,14 @@ public class TravelPlanService : ITravelPlanService
 
             await _context.SaveChangesAsync();
 
-            return await GetTravelPlanByIdAsync(travelPlan.Id, tenantId);
+            return await GetTravelPlanByIdAsync(travelPlan.Id);
         }
 
-        public async Task<bool> DeleteTravelPlanAsync(Guid id, Guid tenantId)
+        public async Task<bool> DeleteTravelPlanAsync(Guid id)
         {
             var travelPlan = await _context.TravelPlans
                 .Include(tp => tp.Quotes)
-                .FirstOrDefaultAsync(tp => tp.Id == id && tp.TenantId == tenantId);
+                .FirstOrDefaultAsync(tp => tp.Id == id);
 
             if (travelPlan == null) return false;
 
@@ -189,10 +188,10 @@ public class TravelPlanService : ITravelPlanService
             return true;
         }
 
-        public async Task<bool> ToggleTravelPlanStatusAsync(Guid id, Guid tenantId)
+        public async Task<bool> ToggleTravelPlanStatusAsync(Guid id)
         {
             var travelPlan = await _context.TravelPlans
-                .FirstOrDefaultAsync(tp => tp.Id == id && tp.TenantId == tenantId);
+                .FirstOrDefaultAsync(tp => tp.Id == id);
 
             if (travelPlan == null) return false;
 
@@ -203,20 +202,19 @@ public class TravelPlanService : ITravelPlanService
             return true;
         }
 
-        public async Task<List<string>> GetDestinationsAsync(Guid tenantId)
+        public async Task<List<string>> GetDestinationsAsync()
         {
             return await _context.TravelPlans
-                .Where(tp => tp.TenantId == tenantId && tp.IsActive)
+                .Where(tp => tp.IsActive)
                 .Select(tp => tp.DestinationId.ToString())
                 .Distinct()
                 .OrderBy(d => d)
                 .ToListAsync();
         }
 
-        public async Task<List<string>> GetPlanTypesAsync(Guid tenantId)
+        public async Task<List<string>> GetPlanTypesAsync()
         {
             return await _context.TravelPlans
-                .Where(tp => tp.TenantId == tenantId)
                 .Select(tp => tp.PlanType)
                 .Distinct()
                 .OrderBy(pt => pt)

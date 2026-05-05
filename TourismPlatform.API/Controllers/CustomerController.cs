@@ -26,7 +26,6 @@ namespace TourismPlatform.API.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
-            var tenantId = GetTenantId();
             var searchDto = new CustomerSearchDto
             {
                 SearchTerm = searchTerm,
@@ -37,15 +36,14 @@ namespace TourismPlatform.API.Controllers
                 PageSize = pageSize
             };
 
-            var customers = await _customerService.GetCustomersAsync(searchDto, tenantId);
+            var customers = await _customerService.GetCustomersAsync(searchDto);
             return Ok(customers);
         }
 
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<CustomerResponseDto>> GetCustomer(Guid id)
         {
-            var tenantId = GetTenantId();
-            var customer = await _customerService.GetCustomerByIdAsync(id, tenantId);
+            var customer = await _customerService.GetCustomerByIdAsync(id);
 
             if (customer == null)
                 return NotFound($"Customer with ID {id} not found");
@@ -56,8 +54,7 @@ namespace TourismPlatform.API.Controllers
         [HttpGet("by-email/{email}")]
         public async Task<ActionResult<CustomerResponseDto>> GetCustomerByEmail(string email)
         {
-            var tenantId = GetTenantId();
-            var customer = await _customerService.GetCustomerByEmailAsync(email, tenantId);
+            var customer = await _customerService.GetCustomerByEmailAsync(email);
 
             if (customer == null)
                 return NotFound($"Customer with email {email} not found");
@@ -68,8 +65,7 @@ namespace TourismPlatform.API.Controllers
         [HttpGet("by-document/{documentNumber}")]
         public async Task<ActionResult<CustomerResponseDto>> GetCustomerByDocument(string documentNumber)
         {
-            var tenantId = GetTenantId();
-            var customer = await _customerService.GetCustomerByDocumentAsync(documentNumber, tenantId);
+            var customer = await _customerService.GetCustomerByDocumentAsync(documentNumber);
 
             if (customer == null)
                 return NotFound($"Customer with document {documentNumber} not found");
@@ -82,8 +78,7 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var customer = await _customerService.CreateCustomerAsync(createCustomerDto, tenantId);
+                var customer = await _customerService.CreateCustomerAsync(createCustomerDto);
 
                 return CreatedAtAction(
                     nameof(GetCustomer),
@@ -105,8 +100,7 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var customer = await _customerService.UpdateCustomerAsync(id, updateCustomerDto, tenantId);
+                var customer = await _customerService.UpdateCustomerAsync(id, updateCustomerDto);
 
                 if (customer == null)
                     return NotFound($"Customer with ID {id} not found");
@@ -128,8 +122,7 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var deleted = await _customerService.DeleteCustomerAsync(id, tenantId);
+                var deleted = await _customerService.DeleteCustomerAsync(id);
 
                 if (!deleted)
                     return NotFound($"Customer with ID {id} not found");
@@ -152,16 +145,13 @@ namespace TourismPlatform.API.Controllers
             [FromQuery] string documentNumber,
             [FromQuery] Guid? excludeId = null)
         {
-            var tenantId = GetTenantId();
-            var exists = await _customerService.ExistsAsync(email, documentNumber, tenantId, excludeId);
+            var exists = await _customerService.ExistsAsync(email, documentNumber, excludeId);
             return Ok(new { exists });
         }
 
         [HttpGet("stats")]
         public async Task<ActionResult> GetCustomerStats()
         {
-            var tenantId = GetTenantId();
-
             // TODO: Implement customer statistics
             var stats = new
             {

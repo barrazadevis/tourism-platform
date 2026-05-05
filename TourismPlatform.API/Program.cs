@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using TourismPlatform.API.Middleware;
+using TourismPlatform.API.Services;
 using TourismPlatform.Data;
 using TourismPlatform.Data.Interfaces;
 using TourismPlatform.Data.Services;
@@ -38,8 +39,8 @@ builder.Services.AddAuthentication();
 
 // Services
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddScoped<ITravelPlanService, TravelPlanService>();
 builder.Services.AddScoped<IQuoteService, QuoteService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
@@ -49,6 +50,8 @@ builder.Services.AddScoped<ISupplierService, SuppliersService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IDestinationService, DestinationService>();
+builder.Services.AddScoped<ICompanyService, CompanyService>();
+
 
 // Add controllers
 builder.Services.AddControllers();

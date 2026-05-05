@@ -1,7 +1,5 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using TourismPlatform.Core.DTOs;
-using TourismPlatform.Data.Interfaces;
 using TourismPlatform.Data.Services;
 
 namespace TourismPlatform.API.Controllers
@@ -11,12 +9,9 @@ namespace TourismPlatform.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
-        private readonly ITenantService _tenantService;
-
-        public AuthController(IAuthService authService, ITenantService tenantService)
+        public AuthController(IAuthService authService)
         {
             _authService = authService;
-            _tenantService = tenantService;
         }
 
         [HttpPost("login")]
@@ -24,11 +19,7 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenant = await _tenantService.GetBySubdomainAsync(request.TenantSubdomain);
-                if (tenant == null)
-                    return BadRequest("Tenant no encontrado. Verifique la URL.");
-
-                var response = await _authService.LoginAsync(request, tenant.Subdomain);
+                var response = await _authService.LoginAsync(request);
                 return Ok(response);
             }
             catch (UnauthorizedAccessException ex)
@@ -46,15 +37,7 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenant = await _tenantService.GetBySubdomainAsync(request.TenantSubdomain);
-                if (tenant == null)
-                    return BadRequest(new { message = "Tenant no encontrado. Verifique la URL." });
-
-                // Verificar que el tenant esté activo
-                if (!tenant.IsActive)
-                    return BadRequest(new { message = "El tenant no está activo para registros." });
-
-                var response = await _authService.RegisterAsync(request, tenant.Subdomain);
+                var response = await _authService.RegisterAsync(request);
                 return Ok(response);
             }
             catch (ArgumentException ex)

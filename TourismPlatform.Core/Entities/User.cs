@@ -13,12 +13,10 @@ namespace TourismPlatform.Core.Entities
         public DateTime? LastLoginAt { get; set; }
 
         // Foreign keys
-        public Guid TenantId { get; set; }
         public Guid? CompanyId { get; set; }
         public int ApplicationId { get; set; }
 
         // Navigation properties
-        public Tenant Tenant { get; set; } = null!;
         public Application Application { get; set; } = null!;
         public Company? Company { get; set; } = null!;
 

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TourismPlatform.API.Middleware;
 using TourismPlatform.Core.DTOs.Booking;
 using TourismPlatform.Data.Interfaces;
 
@@ -23,17 +22,15 @@ namespace TourismPlatform.API.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
-            var tenantId = GetTenantId();
-            var bookings = await _bookingService.GetBookingsByTenantAsync(tenantId, page, pageSize);
+            var bookings = await _bookingService.GetBookingsByTenantAsync(page, pageSize);
             return Ok(bookings);
         }
 
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<BookingResponseDto>> GetBooking(Guid id)
         {
-            var tenantId = GetTenantId();
-            var booking = await _bookingService.GetBookingByIdAsync(id, tenantId);
-            
+            var booking = await _bookingService.GetBookingByIdAsync(id);
+
             if (booking == null)
                 return NotFound($"Booking with ID {id} not found");
 
@@ -43,8 +40,7 @@ namespace TourismPlatform.API.Controllers
         [HttpGet("customer/{customerId:guid}")]
         public async Task<ActionResult<List<BookingResponseDto>>> GetBookingsByCustomer(Guid customerId)
         {
-            var tenantId = GetTenantId();
-            var bookings = await _bookingService.GetBookingsByCustomerAsync(customerId, tenantId);
+            var bookings = await _bookingService.GetBookingsByCustomerAsync(customerId);
             return Ok(bookings);
         }
 
@@ -53,9 +49,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var booking = await _bookingService.CreateBookingFromQuoteAsync(createBookingDto, tenantId);
-                
+                var booking = await _bookingService.CreateBookingFromQuoteAsync(createBookingDto);
+
                 return CreatedAtAction(
                     nameof(GetBooking), 
                     new { id = booking.Id }, 
@@ -76,9 +71,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var booking = await _bookingService.UpdateBookingStatusAsync(id, statusDto, tenantId);
-                
+                var booking = await _bookingService.UpdateBookingStatusAsync(id, statusDto);
+
                 if (booking == null)
                     return NotFound($"Booking with ID {id} not found");
 
@@ -95,9 +89,8 @@ namespace TourismPlatform.API.Controllers
         {
             try
             {
-                var tenantId = GetTenantId();
-                var cancelled = await _bookingService.CancelBookingAsync(id, request.Reason, tenantId);
-                
+                var cancelled = await _bookingService.CancelBookingAsync(id, request.Reason);
+
                 if (!cancelled)
                     return NotFound($"Booking with ID {id} not found");
 
@@ -112,8 +105,7 @@ namespace TourismPlatform.API.Controllers
         [HttpGet("generate-number")]
         public async Task<ActionResult<string>> GenerateBookingNumber()
         {
-            var tenantId = GetTenantId();
-            var bookingNumber = await _bookingService.GenerateBookingNumberAsync(tenantId);
+            var bookingNumber = await _bookingService.GenerateBookingNumberAsync();
             return Ok(new { bookingNumber });
         }
     }

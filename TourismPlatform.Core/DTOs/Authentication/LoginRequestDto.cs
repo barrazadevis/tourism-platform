@@ -11,8 +11,5 @@ namespace TourismPlatform.Core.DTOs
         [Required]
         [MinLength(6)]
         public string Password { get; set; } = string.Empty;
-
-        [Required]
-        public string TenantSubdomain { get; set; } = string.Empty;
     }
 }
