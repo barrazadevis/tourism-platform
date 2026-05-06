@@ -23,7 +23,7 @@ public class CompanyService : ICompanyService
             Name = request.Name,
             PlanType = request.PlanType,
             ApplicationId = request.ApplicationId,
-            SubscriptionEndsAt = request.SubscriptionEndsAt,
+            SubscriptionEndsAt = request.SubscriptionEndsAt.HasValue ? DateTime.SpecifyKind(request.SubscriptionEndsAt.Value, DateTimeKind.Utc) : null,
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         };
@@ -105,7 +105,7 @@ public class CompanyService : ICompanyService
             company.PlanType = request.PlanType;
 
         if (request.SubscriptionEndsAt.HasValue)
-            company.SubscriptionEndsAt = request.SubscriptionEndsAt;
+            company.SubscriptionEndsAt = DateTime.SpecifyKind(request.SubscriptionEndsAt.Value, DateTimeKind.Utc);
 
         if (request.IsActive.HasValue)
             company.IsActive = request.IsActive.Value;
